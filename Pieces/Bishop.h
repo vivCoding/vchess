@@ -11,13 +11,12 @@ public:
         this->position = Vector(startPos.x, startPos.y);
         this->symbol = 'B';
         this->num_moves = 4;
-        Vector moves[4] = {
+        this->moves = new Vector[num_moves] {
             Vector(1, 1),
             Vector(1, -1),
             Vector(-1, -1),
             Vector(-1, 1),
         };
-        this->moves = moves;
     }
 };
 

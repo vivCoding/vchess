@@ -11,7 +11,7 @@ public:
         this->position = Vector(startPos.x, startPos.y);
         this->symbol = 'K';
         this->num_moves = 8;
-        Vector moves[8] = {
+        this->moves = new Vector[this->num_moves] {
             Vector(0, 1),
             Vector(1, 1),
             Vector(1, 0),
@@ -21,7 +21,6 @@ public:
             Vector(-1, 0),
             Vector(-1, 1),
         };
-        this->moves = moves;
     }
 };
 

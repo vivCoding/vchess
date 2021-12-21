@@ -6,19 +6,19 @@
 
 class Pawn : public Piece {
 private:
-    Vector initMove = Vector(0, 2);
+    Vector initMove = Vector(0, 1);
+    Vector specialMove = Vector(0, 2);
 public:
     Pawn(Color color, Vector startPos) {
         this->color = color;
         this->position = Vector(startPos.x, startPos.y);
         this->symbol = 'P';
         this->num_moves = 3;
-        Vector moves[3] = {
+        this->moves = new Vector[this->num_moves] {
             Vector(0, 1),
             Vector(1, 1),
             Vector(-1, 1),
         };
-        this->moves = moves;
     }
 
     int makeMove(Vector nextMove) {

@@ -1,2 +1,2 @@
-# chess-ai-bot
-AI bot that plays chess
+# Chess Engine
+Bot that can play chess
