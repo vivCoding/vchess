@@ -35,7 +35,6 @@ int main() {
                     cout << "Invalid input! Type \"help\" for more info!\n";
                     continue;
                 } else {
-                    cout << px << ", " << py - 1 << ", " << nx << ", " << ny - 1 << endl;
                     if (chess.move_piece(px, py - 1, nx, ny - 1)) {
                         show_board = true;
                     } else cout << "Invalid move!" << endl;

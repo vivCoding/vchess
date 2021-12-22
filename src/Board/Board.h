@@ -47,12 +47,12 @@ public:
         for (int y = 7; y >= 0; y--) {
             cout << y + 1 << " | ";
             for (int x = 0; x < 8; x++) {
-                cout << board[x][y].symbol;
-                if (board[x][y].is_valid()) {
+                if (board[x][y].is_valid) {
+                    cout << board[x][y].symbol;
                     if (board[x][y].color == WHITE) {
                         cout << 'w';
                     } else cout << 'b';
-                } else cout << " ";
+                } else cout << ". ";
                 cout << " ";
             }
             cout << "|";
@@ -68,10 +68,14 @@ public:
 
     bool move_piece(int px, int py, int nx, int ny) {
         Piece* piece = get_piece(px, py);
-        Piece* other = get_piece(nx, ny);
-        if (piece->is_valid_move(Vector(nx, ny)) && (piece->color != other->color || !other->is_valid())) {
+        // NOTE: def not ideal to do this multi casting lol
+        if (
+            ((Pawn*) piece)->is_valid_move(Vector(nx, ny), this)
+            || ((FastPiece*) piece)->is_valid_move(Vector(nx, ny), this)
+            || piece->is_valid_move(Vector(nx, ny), this)
+        ) {
             set_piece(nx, ny, piece);
-            piece->set_invalid();
+            piece->is_valid = false;
             return true;
         } else return false;
     }
@@ -81,9 +85,9 @@ public:
     }
 
     void set_piece(int x, int y, Piece* piece) {
-        board[x][y] = *piece;
         piece->position.x = x;
         piece->position.y = y;
+        board[x][y] = *piece;
     }
 };
 

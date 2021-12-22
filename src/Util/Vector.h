@@ -6,26 +6,26 @@ public:
     int x = 0;
     int y = 0;
 
-    Vector() {};
+    Vector() : x(0), y(0) {};
     Vector(int x, int y) {
         this->x = x;
         this->y = y;
-    }
-
-    Vector add(int x, int y) {
-        return Vector(this->x + x, this->y + y);
     }
 
     Vector add(Vector v) {
         return Vector(x + v.x, y + v.y);
     }
 
-    Vector subtract(int x, int y) {
-        return Vector(this->x - x, this->y - y);
+    Vector subtract(Vector v) {
+        return Vector(x - v.x, y - v.y);
+    }
+
+    Vector scale(int scalar) {
+        return Vector(x * scalar, y * scalar);
     }
 
     bool equal_to(Vector v) {
-        return v.x == this->x && v.y == this->y;
+        return x == v.x && y == v.y;
     }
 };
 

@@ -10,6 +10,7 @@ public:
         this->color = color;
         this->position = Vector(startPos.x, startPos.y);
         this->symbol = 'B';
+        this->is_valid = true;
         this->num_moves = 4;
         this->moves = new Vector[num_moves] {
             Vector(1, 1),

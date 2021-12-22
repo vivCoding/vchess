@@ -8,9 +8,8 @@ class Board;
 
 class FastPiece : public Piece {
 public:
-    int is_valid_move(Vector nextMove, Board* board) {
-        return 0;
-    }
+
+    bool is_valid_move(Vector next_move, Board *board);
 };
 
 #endif

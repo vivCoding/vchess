@@ -10,8 +10,9 @@ public:
         this->color = color;
         this->position = Vector(startPos.x, startPos.y);
         this->symbol = 'Q';
+        this->is_valid = true;
         this->num_moves = 8;
-        this->moves = new Vector[this->num_moves]{
+        this->moves = new Vector[this->num_moves] {
             Vector(0, 1),
             Vector(1, 1),
             Vector(1, 0),
