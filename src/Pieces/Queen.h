@@ -1,16 +1,11 @@
-#include "FastPiece.h"
-#include "../Board/Colors.h"
-
 #ifndef QUEEN_H
 #define QUEEN_H
 
+#include "FastPiece.h"
+
 class Queen : public FastPiece {
 public:
-    Queen(Color color, Vector startPos) {
-        this->color = color;
-        this->position = Vector(startPos.x, startPos.y);
-        this->symbol = 'Q';
-        this->is_valid = true;
+    Queen(Color color, Vector starting_pos) : FastPiece(color, QUEEN, 9, starting_pos) {
         this->num_moves = 8;
         this->moves = new Vector[this->num_moves] {
             Vector(0, 1),

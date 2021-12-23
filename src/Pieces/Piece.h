@@ -1,8 +1,11 @@
-#include "../Util/Vector.h"
-#include "../Board/Colors.h"
-
 #ifndef PIECE_H
 #define PIECE_H
+
+#include "../Util/Vector.h"
+#include "../Board/Colors.h"
+#include "../Board/PieceTypes.h"
+#include <vector>
+using std::vector;
 
 class Board;
 
@@ -11,14 +14,27 @@ protected:
     int num_moves = 0;
     Vector* moves;
 public:
-    bool is_valid = true;
-    char symbol;
     Color color;
+    PieceType type;
+    int value;
     Vector position;
+    bool is_valid;
 
-    Piece() : is_valid(false) {}
+    Piece() : type(EMPTY), is_valid(false) {}
+    Piece(Color color, PieceType type, int value, Vector starting_pos)
+        : color(color)
+        , type(type)
+        , value(value)
+        , position(starting_pos.x , starting_pos.y)
+        , is_valid(true)
+    {}
 
-    bool is_valid_move(Vector next_move, Board* board);
+    virtual bool is_valid_move(Vector next_move, Board* board);
+    virtual vector<Vector> get_valid_moves(Board* board);
+
+    virtual ~Piece() {
+        delete moves;
+    }
 };
 
 #endif

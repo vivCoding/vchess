@@ -1,16 +1,11 @@
-#include "FastPiece.h"
-#include "../Board/Colors.h"
-
 #ifndef ROOK_H
 #define ROOK_H
 
+#include "FastPiece.h"
+
 class Rook : public FastPiece {
 public:
-    Rook(Color color, Vector startPos) {
-        this->color = color;
-        this->position = Vector(startPos.x, startPos.y);
-        this->symbol = 'R';
-        this->is_valid = true;
+    Rook(Color color, Vector starting_pos) : FastPiece(color, ROOK, 5, starting_pos) {
         this->num_moves = 4;
         this->moves = new Vector[num_moves] {
             Vector(0, 1),

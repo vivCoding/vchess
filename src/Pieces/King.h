@@ -1,16 +1,11 @@
-#include "Piece.h"
-#include "../Board/Colors.h"
-
 #ifndef KING_H
 #define KING_H
 
+#include "Piece.h"
+
 class King : public Piece {
 public:
-    King(Color color, Vector startPos) {
-        this->color = color;
-        this->position = Vector(startPos.x, startPos.y);
-        this->symbol = 'K';
-        this->is_valid = true;
+    King(Color color, Vector starting_pos) : Piece(color, KING, INT32_MAX, starting_pos) {
         this->num_moves = 8;
         this->moves = new Vector[this->num_moves] {
             Vector(0, 1),

@@ -1,16 +1,11 @@
-#include "Piece.h"
-#include "../Board/Colors.h"
-
 #ifndef KNIGHT_H
 #define KNIGHT_H
 
+#include "Piece.h"
+
 class Knight : public Piece {
 public:
-    Knight(Color color, Vector startPos) {
-        this->color = color;
-        this->position = Vector(startPos.x, startPos.y);
-        this->symbol = 'N';
-        this->is_valid = true;
+    Knight(Color color, Vector starting_pos) : Piece(color, KNIGHT, 3, starting_pos) {
         this->num_moves = 8;
         this->moves = new Vector[this->num_moves]{
             Vector(-2, 1),

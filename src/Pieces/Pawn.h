@@ -1,23 +1,15 @@
-#include "Piece.h"
-#include "../Board/Colors.h"
-
-#include <iostream>
-using namespace std;
-
 #ifndef PAWN_H
 #define PAWN_H
+
+#include "Piece.h"
 
 class Board;
 
 class Pawn : public Piece {
 public:
-    Pawn(Color color, Vector startPos) {
-        this->color = color;
-        this->position = Vector(startPos.x, startPos.y);
-        this->symbol = 'P';
+    Pawn(Color color, Vector starting_pos) : Piece(color, PAWN, 1, starting_pos) {
         this->is_valid = true;
-        // NOTE: a very sketchy way. Figure out how to add member field to derived class, while still having Piece[][] array
-        this->num_moves = 0;
+        this->num_moves = 4;
         this->moves = new Vector[4] {
             Vector(0, 1),
             Vector(0, 2),
@@ -27,6 +19,7 @@ public:
     }
 
     bool is_valid_move(Vector next_move, Board* board);
+    vector<Vector> get_valid_moves(Board* board);
 };
 
 #endif
