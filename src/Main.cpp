@@ -4,7 +4,7 @@ using namespace std;
 
 
 int main() {
-    ChessEngine chess;
+    ChessEngine chess(WHITE);
     string input = "";
     string cols = "abcdefgh";
     bool show_board = true;
@@ -16,7 +16,7 @@ int main() {
         getline(cin, input);
         if (input == "exit") {
             cout << "Exited\n";
-            return 0;
+            break;
         } else if (input == "help") {
             cout << "-----\nHELP:\nType \"exit\" to exit program, or \"help\" to bring up this menu.\n";
             cout << "\nMOVES:\nMoves should be in format [a-h][1-8] [a-h][1-8]\nExample: b1 c3 (move piece at b1 to c3)\n\n";
@@ -42,4 +42,5 @@ int main() {
             }
         }
     }
+    return 0;
 }

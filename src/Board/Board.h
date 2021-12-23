@@ -1,5 +1,13 @@
+/*
+ * Board
+ * 
+ * Keeps track of a chessboard state
+*/
+
 #ifndef BOARD_H
 #define BOARD_H
+
+#define BOARD_SIZE 8
 
 #include "../Util/Vector.h"
 #include "Colors.h"
@@ -16,9 +24,11 @@ using namespace std;
 
 class Board {
 private:
-    Piece* board[8][8];
+    Piece* board[BOARD_SIZE][BOARD_SIZE];
     string REG_PIECES = "NK";
     string FAST_PIECES = "RBQ";
+    Piece* white_king;
+    Piece* black_king;
 public:
     Board() {
         for (int y = 0; y < 8; y++) {
@@ -38,10 +48,13 @@ public:
                 }
             } else {
                 for (int x = 0; x < 8; x++) {
-                    board[x][y] = new Piece();
+                    // board[x][y] = new Piece();
+                    board[x][y] = NULL;
                 }
             }
         }
+        white_king = board[4][0];
+        black_king = board[4][7];
     }
 
     void print_board() {
@@ -54,7 +67,7 @@ public:
         for (int y = 7; y >= 0; y--) {
             cout << y + 1 << " | ";
             for (int x = 0; x < 8; x++) {
-                if (board[x][y]->is_valid) {
+                if (board[x][y] != NULL) {
                     cout << ((char) board[x][y]->type);
                     if (board[x][y]->color == WHITE) {
                         cout << 'w';
@@ -73,28 +86,63 @@ public:
         cout << "    a  b  c  d  e  f  g  h" << endl;
     }
 
-    bool move_piece(int px, int py, int nx, int ny) {
-        Piece* piece = get_piece(px, py);
-        if (piece->is_valid && piece->is_valid_move(Vector(nx, ny), this)) {
-            set_piece(nx, ny, piece);
-            board[px][py] = new Piece();
-            return true;
-        } else return false;
-    }
-
     Piece* get_piece(int x, int y) {
-        return board[x][y];
+        if (within_boundaries(x, y)) {
+            return board[x][y];
+        } else return NULL;
     }
 
     Piece* get_piece(Vector v) {
         return board[v.x][v.y];
     }
 
-    void set_piece(int x, int y, Piece* piece) {
-        delete board[x][y];
-        board[x][y] = piece;
-        piece->position.x = x;
-        piece->position.y = y;
+    /*
+     * Replaces piece at board position with the given piece
+     * Returns &piece that was replaced, or NULL if no piece exists at 
+    */
+    Piece* replace_piece(int x, int y, Piece* piece) {
+        if (within_boundaries(x, y)) {
+            Piece* replaced = board[x][y];
+            board[x][y] = piece;
+            if (piece != NULL) {
+                piece->position.set(x, y);
+                if (piece->type == KING) {
+                    if (piece->color == WHITE) {
+                        white_king = piece;
+                    } else black_king = piece;
+                }
+            }
+            return replaced;
+        } else return NULL;
+    }
+    Piece* replace_piece(Vector v, Piece* piece) {
+        return replace_piece(v.x, v.y, piece);
+    }
+
+    /*
+     * Clears the board space at given position (i.e. setting it to NULL)
+     * Returns the piece that previously occupied the space, or NULL if no such piece existed
+    */
+    Piece* clear_piece(int x, int y) {
+        if (!within_boundaries(x, y)) return NULL;
+        Piece* cleared = board[x][y];
+        board[x][y] = NULL;
+        return cleared;
+    }
+    Piece* clear_piece(Vector v) {
+        return clear_piece(v.x, v.y);
+    }
+
+    Piece* get_king(Color color) {
+        return color == WHITE ? white_king : black_king;
+    }
+
+    bool within_boundaries(int x, int y) {
+        return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+    }
+
+    bool within_boundaries(Vector v) {
+        return within_boundaries(v.x, v.y);
     }
 
     ~Board() {

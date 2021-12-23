@@ -1,3 +1,9 @@
+/*
+ * PieceTypes
+ * 
+ * Constants for the different chess pieces
+*/
+
 #ifndef PIECE_TYPES_H
 #define PIECE_TYPES_H
 

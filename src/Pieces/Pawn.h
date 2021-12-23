@@ -1,3 +1,10 @@
+/*
+ * Pawn
+ * 
+ * The pawn is a special chess piece, with many conditional properties.
+ * Thus the need to override many methods for this pieces is necessary
+*/
+
 #ifndef PAWN_H
 #define PAWN_H
 
@@ -8,7 +15,6 @@ class Board;
 class Pawn : public Piece {
 public:
     Pawn(Color color, Vector starting_pos) : Piece(color, PAWN, 1, starting_pos) {
-        this->is_valid = true;
         this->num_moves = 4;
         this->moves = new Vector[4] {
             Vector(0, 1),

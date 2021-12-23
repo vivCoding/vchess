@@ -1,3 +1,9 @@
+/*
+ * FastPiece
+ * 
+ * Represents pieces that move more than one space at a time (e.g. Rook, Bishop, Queen)
+*/
+
 #ifndef FAST_PIECE_H
 #define FAST_PIECE_H
 

@@ -1,3 +1,10 @@
+/*
+ * Piece
+ * 
+ * The basic chess piece that moves one space at a time (e.g. Knight, King)
+ * Can also represent an empty piece (space) on the chessboard
+*/
+
 #ifndef PIECE_H
 #define PIECE_H
 
@@ -18,15 +25,13 @@ public:
     PieceType type;
     int value;
     Vector position;
-    bool is_valid;
 
-    Piece() : type(EMPTY), is_valid(false) {}
+    Piece() : num_moves(0), type(EMPTY) {}
     Piece(Color color, PieceType type, int value, Vector starting_pos)
         : color(color)
         , type(type)
         , value(value)
         , position(starting_pos.x , starting_pos.y)
-        , is_valid(true)
     {}
 
     virtual bool is_valid_move(Vector next_move, Board* board);

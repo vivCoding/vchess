@@ -1,3 +1,9 @@
+/*
+ * Vector
+ * 
+ * A helper class to represent chess positions and movements
+*/
+
 #ifndef VECTOR_H
 #define VECTOR_H
 
@@ -14,6 +20,16 @@ public:
     Vector(int x, int y) {
         this->x = x;
         this->y = y;
+    }
+
+    void set(int x, int y) {
+        this->x = x;
+        this->y = y;
+    }
+
+    void set(Vector v) {
+        this->x = v.x;
+        this->y = v.y;
     }
 
     Vector add(Vector v) {
