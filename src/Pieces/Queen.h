@@ -3,6 +3,9 @@
 
 #include "FastPiece.h"
 
+/*
+ * Represents a queen chess piece. Derived from FastPiece class
+*/
 class Queen : public FastPiece {
 public:
     Queen(Color color, Vector starting_pos) : FastPiece(color, QUEEN, 9, starting_pos) {

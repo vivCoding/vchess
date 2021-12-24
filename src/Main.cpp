@@ -10,17 +10,29 @@ int main() {
     bool show_board = true;
 
     while (input != "exit") {
-        if (show_board)
+        if (show_board) {
             chess.print_board();
+        }
+        if (chess.get_turn() == BLACK) {
+            Move move = chess.generate_move(BLACK);
+            chess.move_piece(move);
+            cout << "BLACK MOVE: " << move.as_string() << endl;
+            show_board = true;
+            continue;
+        }
         cout << "Type next move or exit: ";
         getline(cin, input);
         if (input == "exit") {
             cout << "Exited\n";
             break;
         } else if (input == "help") {
-            cout << "-----\nHELP:\nType \"exit\" to exit program, or \"help\" to bring up this menu.\n";
+            cout << "-----\nHELP:\nType \"exit\" to exit program, or \"help\" to bring up this menu.\nType \"reset\" to reset the game.\n";
             cout << "\nMOVES:\nMoves should be in format [a-h][1-8] [a-h][1-8]\nExample: b1 c3 (move piece at b1 to c3)\n\n";
             show_board = false;
+        } else if (input == "reset") {
+            chess.reset_game();
+            cout << "Game reset!\n";
+            show_board = true;
         } else {
             if (input.length() != 5 || input[2] != ' ') {
                 cout << "Invalid input! Type \"help\" for more info!\n";

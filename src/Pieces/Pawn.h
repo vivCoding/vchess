@@ -1,17 +1,15 @@
-/*
- * Pawn
- * 
- * The pawn is a special chess piece, with many conditional properties.
- * Thus the need to override many methods for this pieces is necessary
-*/
 
 #ifndef PAWN_H
 #define PAWN_H
 
 #include "Piece.h"
 
-class Board;
-
+/*
+ * Represents a pawn chess piece. Derived from Piece class
+ * 
+ * The pawn is a special chess piece, with many conditional properties.
+ * Thus the need to override many methods for this pieces is necessary
+*/
 class Pawn : public Piece {
 public:
     Pawn(Color color, Vector starting_pos) : Piece(color, PAWN, 1, starting_pos) {

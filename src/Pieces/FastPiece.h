@@ -1,17 +1,13 @@
-/*
- * FastPiece
- * 
- * Represents pieces that move more than one space at a time (e.g. Rook, Bishop, Queen)
-*/
-
 #ifndef FAST_PIECE_H
 #define FAST_PIECE_H
 
 #include "Piece.h"
 
-// forward declare, avoid circular dependencies
-class Board;
-
+/*
+ * Represents chess pieces that move more than one space at a time
+ * All fast pieces derive from this class (e.g. Bishop, Rook, Queen)
+ * Derived from class Piece
+*/
 class FastPiece : public Piece {
 public:
     FastPiece(Color color, PieceType type, int value, Vector starting_position)

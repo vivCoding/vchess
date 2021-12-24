@@ -1,10 +1,3 @@
-/*
- * Piece
- * 
- * The basic chess piece that moves one space at a time (e.g. Knight, King)
- * Can also represent an empty piece (space) on the chessboard
-*/
-
 #ifndef PIECE_H
 #define PIECE_H
 
@@ -14,8 +7,14 @@
 #include <vector>
 using std::vector;
 
+// forward declare, avoid circular dependencies
 class Board;
 
+/*
+ * Class that represents the basic chess piece that moves one space at a time (e.g. Knight, King)
+ * Can also represent an empty piece (space) on the chessboard (not used)
+ * All chess pieces derive from this class
+*/
 class Piece {
 protected:
     int num_moves = 0;

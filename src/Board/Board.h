@@ -1,9 +1,3 @@
-/*
- * Board
- * 
- * Keeps track of a chessboard state
-*/
-
 #ifndef BOARD_H
 #define BOARD_H
 
@@ -22,6 +16,11 @@
 #include <iostream>
 using namespace std;
 
+/*
+ * Class that keeps track of a chessboard state
+ * 
+ * Initializes as a standard 8x8 chessboard with all pieces at standard positions
+*/
 class Board {
 private:
     Piece* board[BOARD_SIZE][BOARD_SIZE];
@@ -57,35 +56,6 @@ public:
         black_king = board[4][7];
     }
 
-    void print_board() {
-        int gap = 25;
-        cout << "   ";
-        for (int x = 0; x < gap; x++) {
-            cout << "-";
-        }
-        cout << endl;
-        for (int y = 7; y >= 0; y--) {
-            cout << y + 1 << " | ";
-            for (int x = 0; x < 8; x++) {
-                if (board[x][y] != NULL) {
-                    cout << ((char) board[x][y]->type);
-                    if (board[x][y]->color == WHITE) {
-                        cout << 'w';
-                    } else cout << 'b';
-                } else cout << ". ";
-                cout << " ";
-            }
-            cout << "|";
-            cout << endl;
-        }
-        cout << "   ";
-        for (int x = 0; x < gap; x++) {
-            cout << "-";
-        }
-        cout << endl;
-        cout << "    a  b  c  d  e  f  g  h" << endl;
-    }
-
     Piece* get_piece(int x, int y) {
         if (within_boundaries(x, y)) {
             return board[x][y];
@@ -98,7 +68,7 @@ public:
 
     /*
      * Replaces piece at board position with the given piece
-     * Returns &piece that was replaced, or NULL if no piece exists at 
+     * Returns &piece that was replaced, or NULL if no piece exists at given position
     */
     Piece* replace_piece(int x, int y, Piece* piece) {
         if (within_boundaries(x, y)) {
@@ -137,12 +107,46 @@ public:
         return color == WHITE ? white_king : black_king;
     }
 
+    /*
+     * Checks whether given position is a valid board position
+    */
     bool within_boundaries(int x, int y) {
         return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
     }
-
     bool within_boundaries(Vector v) {
         return within_boundaries(v.x, v.y);
+    }
+
+    /*
+     * Conveniently prints the entire board state to the stdout
+    */
+    void print_board() {
+        int gap = 25;
+        cout << "   ";
+        for (int x = 0; x < gap; x++) {
+            cout << "-";
+        }
+        cout << endl;
+        for (int y = 7; y >= 0; y--) {
+            cout << y + 1 << " | ";
+            for (int x = 0; x < 8; x++) {
+                if (board[x][y] != NULL) {
+                    cout << ((char) board[x][y]->type);
+                    if (board[x][y]->color == WHITE) {
+                        cout << 'w';
+                    } else cout << 'b';
+                } else cout << ". ";
+                cout << " ";
+            }
+            cout << "|";
+            cout << endl;
+        }
+        cout << "   ";
+        for (int x = 0; x < gap; x++) {
+            cout << "-";
+        }
+        cout << endl;
+        cout << "    a  b  c  d  e  f  g  h" << endl;
     }
 
     ~Board() {

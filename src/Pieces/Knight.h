@@ -3,6 +3,9 @@
 
 #include "Piece.h"
 
+/*
+ * Represents a knight chess piece. Derived from Piece class
+*/
 class Knight : public Piece {
 public:
     Knight(Color color, Vector starting_pos) : Piece(color, KNIGHT, 3, starting_pos) {
