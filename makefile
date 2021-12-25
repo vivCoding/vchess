@@ -1,4 +1,4 @@
-CFLAGS = -Wall -g
+CFLAGS = -std=c++11 -Wall -g
 CC = g++
 OUTPUT_DIR = _bin
 

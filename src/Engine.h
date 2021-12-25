@@ -36,51 +36,43 @@ private:
         int score;
         bool visited = false;
     };
+    PossibleMove create_possible_move(Color color, Move root, Move move, int depth, bool maximizing, int score) {
+        PossibleMove pm;
+        pm.color = color; pm.root = root; pm.move = move; pm.depth = depth;
+        pm.maximizing = maximizing; pm.score = score;
+        return pm;
+    }
 
     /*
-     * Checks if moving piece is valid (i.e, is valid piece move and does not result in check for given color or current turn color)
+     * Checks if a move will result in check
     */
-    // TODO: perhaps do not have to check is_valid_move. Just check for check
-    bool is_valid_move(Move move) { return is_valid_move(move, turn); }
-    bool is_valid_move(Move move, Color color) { return is_valid_move(move.move_from, move.move_to, color); }
-    bool is_valid_move(Vector from, Vector to) { return is_valid_move(from, to, turn); }
-    bool is_valid_move(Vector from, Vector to, Color color) {
+    bool will_check(Vector from, Vector to) { return will_check(from, to, turn); }
+    bool will_check(Vector from, Vector to, Color color) {
         Piece* p = board->get_piece(from);
-        if (p != NULL && p->is_valid_move(to, board)) {
-            // temporary move piece to new place and check if it results in check;
-            Piece* old = board->replace_piece(to, p);
-            board->clear_piece(from);
-            bool in_check = is_check(color);
-            // move piece back to original position
-            board->replace_piece(to, old);
-            board->replace_piece(from, p);
-            return !in_check;
-        }
-        return false;
+        // temporary move piece to new place and check if it results in check
+        Piece* old = board->replace_piece(to, p);
+        board->clear_piece(from);
+        bool in_check = is_check(color);
+        // move piece back to original position
+        board->replace_piece(to, old);
+        board->replace_piece(from, p);
+        return in_check;
     }
-    
-    // TODO: use this function in other functions where applicable
+
+    /*
+     * Returns all possible (valid) moves for a specific color
+    */
     vector<Move> get_all_valid_moves() { return get_all_valid_moves(turn); }
     vector<Move> get_all_valid_moves(Color color) {
         vector<Move> possible_moves;
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
-                Piece* p = board->get_piece(x, y);
-                if (p != NULL && p->color == color) {
-                    vector<Vector> valid_moves = p->get_valid_moves(board);
-                    Vector from = p->position;
-                    for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-                        // temporary move piece to new place and check if it results in check;
-                        Piece* old = board->replace_piece(*m, p);
-                        board->clear_piece(from);
-                        bool in_check = is_check(color);
-                        // move piece back to original position
-                        board->replace_piece(*m, old);
-                        board->replace_piece(from, p);
-                        if (!in_check) {
-                            possible_moves.push_back(Move(from, *m, p, old));
-                        }
-                    }
+        vector<Piece*> pieces = board->get_pieces(color);
+        for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
+            Piece* p = *pa;
+            vector<Vector> valid_moves = p->get_valid_moves(board);
+            Vector from = p->position;
+            for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
+                if (!will_check(from, *m, color)) {
+                    possible_moves.push_back(Move(from, *m, p, board->get_piece(*m)));
                 }
             }
         }
@@ -98,10 +90,10 @@ public:
     bool move_piece(Move move) { return move_piece(move.move_from, move.move_to); }
     bool move_piece(int fx, int fy, int tx, int ty) { return move_piece(Vector(fx, fy), Vector(tx, ty)); }
     bool move_piece(Vector from, Vector to) {
-        if (is_valid_move(from, to)) {
-            Piece* old = board->replace_piece(to, board->get_piece(from));
+        Piece *p = board->get_piece(from);
+        if (p != NULL && p->is_valid_move(to, board) && !will_check(from, to)) {
+            board->replace_piece(to, board->get_piece(from));
             board->clear_piece(from);
-            delete old;
             next_turn();
             return true;
         }
@@ -114,16 +106,12 @@ public:
     bool is_check() { return is_check(turn); }
     bool is_check(Color color) {
         Vector king_position = board->get_king(color)->position;
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
-                Piece* p = board->get_piece(x, y);
-                if (p != NULL && p->color != color) {
-                    vector<Vector> valid_moves = p->get_valid_moves(board);
-                    for (auto p = valid_moves.begin(); p != valid_moves.end(); p++) {
-                        if (p->equal_to(king_position)) {
-                            return true;
-                        }
-                    }
+        vector<Piece*> pieces = board->get_pieces(other_color(color));
+        for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
+            vector<Vector> valid_moves = (*pa)->get_valid_moves(board);
+            for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
+                if (m->equal_to(king_position)) {
+                    return true;
                 }
             }
         }
@@ -135,20 +123,18 @@ public:
     */
     bool is_checkmate() { return is_checkmate(turn); }
     bool is_checkmate(Color color) {
-        // RIP runtime complexity = 64 * color_piece_valid_moves * 64 * enemy_piece_valid_moves
         if (is_check(color)) {
-            // check if there's a piece out there that can prevent check
-            for (int x = 0; x < BOARD_SIZE; x++) {
-                for (int y = 0; y < BOARD_SIZE; y++) {
-                    Piece* p = board->get_piece(x, y);
-                    if (p != NULL && p->color == color && p->type) {
-                        vector<Vector> valid_moves = p->get_valid_moves(board);
-                        for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-                            // if we have at least one valid move, that means we can still prevent check
-                            if (is_valid_move(p->position, *m)) {
-                                return false;
-                            }
-                        }
+            // check if we have a piece that can prevent check
+            // this is faster than finding all possible moves first, since here we could return right away
+            vector<Piece*> pieces = board->get_pieces(color);
+            for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
+                Piece* p = *pa;
+                vector<Vector> valid_moves = p->get_valid_moves(board);
+                Vector from = p->position;
+                for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
+                    // if we have at least one valid move, that means we can still prevent check
+                    if (!will_check(from, *m, color)) {
+                        return false;
                     }
                 }
             }
@@ -162,20 +148,13 @@ public:
     */
     bool is_stalemate() { return is_stalemate(turn); }
     bool is_stalemate(Color color) {
-        // exact same logic as checkmate, except we're not in check
         if (!is_check(color)) {
-            for (int x = 0; x < BOARD_SIZE; x++) {
-                for (int y = 0; y < BOARD_SIZE; y++) {
-                    Piece* p = board->get_piece(x, y);
-                    if (p != NULL && p->color == color) {
-                        vector<Vector> valid_moves = p->get_valid_moves(board);
-                        for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-                            // if we have at least one move, then it's not stalement.
-                            if (is_valid_move(p->position, *m)) {
-                                return false;
-                            }
-                        }    
-                    }
+            vector<Piece *> pieces = board->get_pieces(color);
+            for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
+                vector<Vector> valid_moves = (*pa)->get_valid_moves(board);
+                // if we have at least 1 valid move, then we're not in stalemate
+                if (valid_moves.size() != 0) {
+                    return false;
                 }
             }
             return true;
@@ -203,31 +182,29 @@ public:
         // TODO: holy crap fix the runtime complexity
         if (level == 0) return generate_random_move(color);
         stack<PossibleMove> pm_stack;
+        // TODO: consider using a map, to avoid inserting duplicates
         vector<PossibleMove> best_moves;
         int best_score = INT32_MIN;
         // first add all the first moves
         vector<Move> first_moves = get_all_valid_moves(color);
         for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
-            struct PossibleMove pm;
-            pm.color = color;
-            pm.root = *m;
-            pm.move = *m;
-            pm.depth = 1;
-            pm.maximizing = true;
-            pm.score = m->piece_replaced == NULL ? 0 : m->piece_replaced->value;
-            pm_stack.push(pm);
+            pm_stack.push(create_possible_move(
+                color, *m, *m, 1, true,
+                m->piece_replaced == NULL ? 0 : m->piece_replaced->value
+            ));
         }
         // now do DFS
         int count = 0;
+        // cout << endl << "moves considered: " << count;
         while (pm_stack.size() != 0) {
-            struct PossibleMove pm = pm_stack.top();
+            PossibleMove pm = pm_stack.top();
             Move move = pm.move;
             pm_stack.pop();
+            // cout << '\r' << "moves considered: " << count;
             if (pm.visited) {
                 // undo move
                 board->replace_piece(move.move_to, move.piece_replaced);
                 board->replace_piece(move.move_from, move.piece_moved);
-                count++;
             } else {
                 // move piece to find new possible moves
                 board->replace_piece(move.move_to, move.piece_moved);
@@ -263,14 +240,9 @@ public:
                         board->replace_piece(m->move_from, m->piece_moved);
                         // check if this can be considered as a next best move
                         if (abs(updated_score) >= abs(next_best_score)) {
-                            struct PossibleMove best_move;
-                            best_move.color = other;
-                            best_move.root = pm.root;
-                            best_move.depth = pm.depth + 1;
-                            best_move.maximizing = !pm.maximizing;
-                            best_move.score = pm.score;
-                            best_move.move = *m;
-                            best_move.score = updated_score;
+                            PossibleMove best_move = create_possible_move(
+                                other, pm.root, *m, pm.depth + 1, !pm.maximizing, updated_score
+                            );
                             if (abs(updated_score) > abs(next_best_score)) {
                                 next_best_moves.clear();
                             }
@@ -281,6 +253,8 @@ public:
                     // all the next best moves have the same score, and thus must be checked. Add to stack
                     for (auto nm = next_best_moves.begin(); nm != next_best_moves.end(); nm++) {
                         pm_stack.push(*nm);
+                        count++;
+                        // cout << '\r' << "moves considered: " << count;
                     }
                 } else {
                     // we've reached the max depth. Update best move accordingly
@@ -294,11 +268,9 @@ public:
                 }
             }
         }
-        struct PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
-        // cout << "total visited: " << count << endl;
-        // cout << "best move: " << best_move.root.as_string() << endl;
-        // cout << "score: " << best_score << endl;
-        // cout << "predicted move: " << best_move.move.as_string() << endl;
+        PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
+        // cout << endl;
+        // cout << "best score: " << best_score << endl;
         return best_move.root;
     }
 
@@ -340,7 +312,7 @@ public:
     }
 
     ~ChessEngine() {
-        delete &board;
+        delete board;
     }
 };
 

@@ -14,6 +14,7 @@
 #include "../Pieces/Queen.h"
 
 #include <iostream>
+#include <unordered_map>
 using namespace std;
 
 /*
@@ -26,10 +27,20 @@ private:
     Piece* board[BOARD_SIZE][BOARD_SIZE];
     string REG_PIECES = "NK";
     string FAST_PIECES = "RBQ";
+
+    // allow for quicker querying
+    unordered_map<string, Piece*> white_pieces;
+    unordered_map<string, Piece*> black_pieces;
     Piece* white_king;
     Piece* black_king;
+
+    // used for memory management
+    unordered_map<string, Piece*> deleted_pieces;
+
 public:
     Board() {
+        white_pieces.reserve(16);
+        black_pieces.reserve(16);
         for (int x = 0; x < 8; x++) {
             for (int y = 0; y < 8; y++) {
                 board[x][y] = NULL;
@@ -46,9 +57,21 @@ public:
                 board[5][y] = new Bishop(color, Vector(5, y));
                 board[6][y] = new Knight(color, Vector(6, y));
                 board[7][y] = new Rook(color, Vector(7, y));
+                for (int x = 0; x < 8; x++) {
+                    if (color == WHITE) {
+                        white_pieces.insert(pair<string, Piece*>(board[x][y]->get_id(), board[x][y]));
+                    } else {
+                        black_pieces.insert(pair<string, Piece*>(board[x][y]->get_id(), board[x][y]));
+                    }
+                }
                 int i = y == 0 ? 1 : 6;
                 for (int x = 0; x < 8; x++) {
                     board[x][i] = new Pawn(color, Vector(x, i));
+                    if (color == WHITE) {
+                        white_pieces.insert(pair<string, Piece*>(board[x][i]->get_id(), board[x][i]));
+                    } else {
+                        black_pieces.insert(pair<string, Piece*>(board[x][i]->get_id(), board[x][i]));
+                    }
                 }
             }
         }
@@ -73,10 +96,25 @@ public:
             board[x][y] = piece;
             if (piece != NULL) {
                 piece->position.set(x, y);
-                if (piece->type == KING) {
-                    if (piece->color == WHITE) {
+                if (piece->color == WHITE) {
+                    white_pieces.insert(pair<string, Piece*>(piece->get_id(), piece));
+                    if (piece->type == KING) {
                         white_king = piece;
-                    } else black_king = piece;
+                    }
+                } else {
+                    black_pieces.insert(pair<string, Piece*>(piece->get_id(), piece));
+                    if (piece->type == KING) {
+                        black_king = piece;
+                    }
+                }
+                deleted_pieces.erase(piece->get_id());
+                if (replaced != NULL) {
+                    if (replaced->color == WHITE) {
+                        white_pieces.erase(replaced->get_id());
+                    } else {
+                        black_pieces.erase(replaced->get_id());
+                    }
+                    deleted_pieces.insert(pair<string, Piece*>(replaced->get_id(), replaced));
                 }
             }
             return replaced;
@@ -97,6 +135,16 @@ public:
 
     Piece* get_king(Color color) {
         return color == WHITE ? white_king : black_king;
+    }
+
+    vector<Piece*> get_pieces(Color color) {
+        vector<Piece*> pieces;
+        auto start = color == WHITE ? white_pieces.begin() : black_pieces.begin();
+        auto end = color == WHITE ? white_pieces.end() : black_pieces.end();
+        for (auto p = start; p != end; p++) {
+            pieces.push_back(p->second);
+        }
+        return pieces;
     }
 
     /*
@@ -144,6 +192,9 @@ public:
             for (int y = 0; y < 8; y++) {
                 delete board[x][y];
             }
+        }
+        for (auto p = deleted_pieces.begin(); p != deleted_pieces.end(); p++) {
+            delete p->second;
         }
     }
 };
