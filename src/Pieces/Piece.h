@@ -11,8 +11,8 @@ using std::vector;
 class Board;
 
 /*
- * Class that represents the basic chess piece that moves one space at a time (e.g. Knight, King)
- * Can also represent an empty piece (space) on the chessboard (not used)
+ * Class that represents the basic chess piece, with functions responsible for upholding the rules for each chess piece (e.g. get valid piece moves)
+ * The base chess piece moves one space at a time (e.g. Knight, King)
  * All chess pieces derive from this class
 */
 class Piece {
@@ -34,6 +34,8 @@ public:
     {}
 
     virtual bool is_valid_move(Vector next_move, Board* board);
+    // TODO: convert this to vector<Move>
+    // Maybe convert is_valid_move too
     virtual vector<Vector> get_valid_moves(Board* board);
 
     virtual ~Piece() {

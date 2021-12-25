@@ -8,7 +8,7 @@
 */
 class King : public Piece {
 public:
-    King(Color color, Vector starting_pos) : Piece(color, KING, INT32_MAX, starting_pos) {
+    King(Color color, Vector starting_pos) : Piece(color, KING, INT16_MAX, starting_pos) {
         this->num_moves = 8;
         this->moves = new Vector[this->num_moves] {
             Vector(0, 1),

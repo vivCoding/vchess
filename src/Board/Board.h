@@ -30,7 +30,12 @@ private:
     Piece* black_king;
 public:
     Board() {
-        for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
+            for (int y = 0; y < 8; y++) {
+                board[x][y] = NULL;
+            }
+        }
+        for (int y = 0; y < 8; y += 7) {
             Color color = y < 4 ? WHITE : BLACK;
             if (y == 0 || y == 7) {
                 board[0][y] = new Rook(color, Vector(0, y));
@@ -41,14 +46,9 @@ public:
                 board[5][y] = new Bishop(color, Vector(5, y));
                 board[6][y] = new Knight(color, Vector(6, y));
                 board[7][y] = new Rook(color, Vector(7, y));
-            } else if (y == 1 || y == 6) {
+                int i = y == 0 ? 1 : 6;
                 for (int x = 0; x < 8; x++) {
-                    board[x][y] = new Pawn(color, Vector(x, y));
-                }
-            } else {
-                for (int x = 0; x < 8; x++) {
-                    // board[x][y] = new Piece();
-                    board[x][y] = NULL;
+                    board[x][i] = new Pawn(color, Vector(x, i));
                 }
             }
         }
@@ -56,20 +56,17 @@ public:
         black_king = board[4][7];
     }
 
-    Piece* get_piece(int x, int y) {
-        if (within_boundaries(x, y)) {
-            return board[x][y];
-        } else return NULL;
-    }
-
-    Piece* get_piece(Vector v) {
-        return board[v.x][v.y];
-    }
+    /*
+     * Returns &piece at given board position, or NULL if no piece exists at given position
+    */
+    Piece* get_piece(Vector v) { return get_piece(v.x, v.y); }
+    Piece* get_piece(int x, int y) { return within_boundaries(x, y) ? board[x][y] : NULL; }
 
     /*
      * Replaces piece at board position with the given piece
      * Returns &piece that was replaced, or NULL if no piece exists at given position
     */
+    Piece* replace_piece(Vector v, Piece* piece) { return replace_piece(v.x, v.y, piece); }
     Piece* replace_piece(int x, int y, Piece* piece) {
         if (within_boundaries(x, y)) {
             Piece* replaced = board[x][y];
@@ -85,22 +82,17 @@ public:
             return replaced;
         } else return NULL;
     }
-    Piece* replace_piece(Vector v, Piece* piece) {
-        return replace_piece(v.x, v.y, piece);
-    }
 
     /*
      * Clears the board space at given position (i.e. setting it to NULL)
      * Returns the piece that previously occupied the space, or NULL if no such piece existed
     */
+    Piece* clear_piece(Vector v) { return clear_piece(v.x, v.y); }
     Piece* clear_piece(int x, int y) {
         if (!within_boundaries(x, y)) return NULL;
         Piece* cleared = board[x][y];
         board[x][y] = NULL;
         return cleared;
-    }
-    Piece* clear_piece(Vector v) {
-        return clear_piece(v.x, v.y);
     }
 
     Piece* get_king(Color color) {
@@ -110,11 +102,9 @@ public:
     /*
      * Checks whether given position is a valid board position
     */
+    bool within_boundaries(Vector v) { return within_boundaries(v.x, v.y); }
     bool within_boundaries(int x, int y) {
         return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
-    }
-    bool within_boundaries(Vector v) {
-        return within_boundaries(v.x, v.y);
     }
 
     /*

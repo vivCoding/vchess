@@ -4,7 +4,7 @@ using namespace std;
 
 
 int main() {
-    ChessEngine chess(WHITE);
+    ChessEngine chess(4);
     string input = "";
     string cols = "abcdefgh";
     bool show_board = true;
@@ -13,7 +13,7 @@ int main() {
         if (show_board) {
             chess.print_board();
         }
-        if (chess.get_turn() == BLACK) {
+        if (chess.get_turn() == BLACK && !chess.is_checkmate(BLACK)) {
             Move move = chess.generate_move(BLACK);
             chess.move_piece(move);
             cout << "BLACK MOVE: " << move.as_string() << endl;
@@ -31,7 +31,7 @@ int main() {
             show_board = false;
         } else if (input == "reset") {
             chess.reset_game();
-            cout << "Game reset!\n";
+            cout << "Game reset with chess level " << chess.get_level() << "!\n";
             show_board = true;
         } else {
             if (input.length() != 5 || input[2] != ' ') {
