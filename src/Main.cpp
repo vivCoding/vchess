@@ -14,7 +14,7 @@ int main() {
             chess.print_board();
         }
         if (chess.get_turn() == BLACK && !chess.is_checkmate(BLACK)) {
-            Move move = chess.generate_move(BLACK);
+            Move move = chess.generate_move_2(BLACK);
             chess.move_piece(move);
             cout << "BLACK MOVE: " << move.as_string() << endl;
             show_board = true;

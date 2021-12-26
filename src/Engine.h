@@ -27,19 +27,20 @@ private:
         return uni(rng);
     }
 
+    // structure for storing next possible move. Used for move generation
     struct PossibleMove {
         Color color;
-        Move root;
-        Move move;
-        int depth;
-        bool maximizing;
-        int score;
-        bool visited = false;
+        Move root, move;
+        int depth, score, best_score;
+        bool maximizing, visited = false;
+        PossibleMove* parent;
     };
-    PossibleMove create_possible_move(Color color, Move root, Move move, int depth, bool maximizing, int score) {
-        PossibleMove pm;
-        pm.color = color; pm.root = root; pm.move = move; pm.depth = depth;
-        pm.maximizing = maximizing; pm.score = score;
+    // Creates a possible move
+    PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, bool maximizing, int score, int best_score, PossibleMove* parent) {
+        PossibleMove* pm = new PossibleMove();
+        pm->color = color; pm->root = root; pm->move = move; pm->depth = depth;
+        pm->maximizing = maximizing; pm->score = score; pm->best_score = best_score;
+        pm->parent = parent;
         return pm;
     }
 
@@ -48,15 +49,18 @@ private:
     */
     bool will_check(Vector from, Vector to) { return will_check(from, to, turn); }
     bool will_check(Vector from, Vector to, Color color) {
-        Piece* p = board->get_piece(from);
-        // temporary move piece to new place and check if it results in check
-        Piece* old = board->replace_piece(to, p);
-        board->clear_piece(from);
-        bool in_check = is_check(color);
-        // move piece back to original position
-        board->replace_piece(to, old);
-        board->replace_piece(from, p);
-        return in_check;
+        if (board->within_boundaries(from) && board->within_boundaries(to)) {
+            Piece* p = board->get_piece(from);
+            // temporary move piece to new place and check if it results in check
+            Piece* old = board->replace_piece(to, p);
+            board->clear_piece(from);
+            bool in_check = is_check(color);
+            // move piece back to original position
+            board->replace_piece(to, old);
+            board->replace_piece(from, p);
+            return in_check;
+        }
+        return false;
     }
 
     /*
@@ -106,7 +110,7 @@ public:
     bool is_check() { return is_check(turn); }
     bool is_check(Color color) {
         Vector king_position = board->get_king(color)->position;
-        vector<Piece*> pieces = board->get_pieces(other_color(color));
+        vector<Piece*> pieces = board->get_pieces(get_other_color(color));
         for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
             vector<Vector> valid_moves = (*pa)->get_valid_moves(board);
             for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
@@ -176,94 +180,95 @@ public:
      * Utilizes the chess engine level. If level is low, the function takes less time to complete, but may result in worse moves,
      * while higher levels take more time to calculate and may result in better moves
     */
-
     Move generate_move() { return generate_move(turn); }
     Move generate_move(Color color) {
-        // TODO: holy crap fix the runtime complexity
+        return generate_random_move(color);
+    }
+    Move generate_move_2() { return generate_move(turn); }
+    Move generate_move_2(Color color) {
         if (level == 0) return generate_random_move(color);
-        stack<PossibleMove> pm_stack;
-        // TODO: consider using a map, to avoid inserting duplicates
+        stack<PossibleMove*> pm_stack;
         vector<PossibleMove> best_moves;
+        Move predicted_move;
         int best_score = INT32_MIN;
+        int worse_score = INT32_MAX;
         // first add all the first moves
         vector<Move> first_moves = get_all_valid_moves(color);
         for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
+            // we are originally maximizing, so the next moves will want to minimize
             pm_stack.push(create_possible_move(
-                color, *m, *m, 1, true,
-                m->piece_replaced == NULL ? 0 : m->piece_replaced->value
+                color, *m, *m, 1, false,
+                m->piece_replaced == NULL ? 0 : m->piece_replaced->value, INT32_MAX, NULL
             ));
         }
-        // now do DFS
         int count = 0;
-        // cout << endl << "moves considered: " << count;
-        while (pm_stack.size() != 0) {
-            PossibleMove pm = pm_stack.top();
-            Move move = pm.move;
+        // cout << "moves considered: " << count;
+        while (!pm_stack.empty()) {
+            PossibleMove* pm = pm_stack.top();
+            Move move = pm->move;
             pm_stack.pop();
             // cout << '\r' << "moves considered: " << count;
-            if (pm.visited) {
+            if (pm->visited) {
                 // undo move
                 board->replace_piece(move.move_to, move.piece_replaced);
                 board->replace_piece(move.move_from, move.piece_moved);
+                if (pm->parent != NULL) {
+                    if (
+                        (pm->parent->maximizing && pm->best_score > pm->parent->best_score) ||
+                        (!pm->parent->maximizing && pm->best_score < pm->parent->best_score)
+                    ) {
+                        pm->parent->best_score = pm->best_score;
+                    }
+                } else {
+                    if (pm->best_score > best_score) {
+                        best_score = pm->best_score;
+                        best_moves.clear();
+                        best_moves.push_back(*pm);
+                    } else if (pm->best_score == best_score) {
+                        best_moves.push_back(*pm);
+                    }
+                    if (pm->best_score < worse_score) {
+                        worse_score = pm->best_score;
+                    }
+                }
+                count++;
             } else {
                 // move piece to find new possible moves
                 board->replace_piece(move.move_to, move.piece_moved);
                 board->clear_piece(move.move_from);
-                // mark it visited, and revisit later so we can undo the move done
-                pm.visited = true;
+                // we've reached bottom, do nothing except mark its score
+                if (pm->depth == level) {
+                    pm->best_score = pm->score;
+                }
+                // mark it visited so we revisit later and undo the move done
+                pm->visited = true;
                 pm_stack.push(pm);
-                if (pm.depth != level) {
-                    // if we haven't reached all levels yet, then find all possible moves for next turn
-                    Color other = other_color(pm.color);
-                    vector<Move> possible_moves = get_all_valid_moves(other);
-                    // get the next best moves that will maximize score (or minimize if enemy's color)
-                    // getting only the next best moves considerably reduces the number of moves we check
-                    vector<PossibleMove> next_best_moves;
-                    int next_best_score = pm.score;
-                    int sign = pm.maximizing ? -1 : 1;
+                // if we haven't reached all levels yet, then push all possible moves for next turn
+                if (pm->depth != level) {
+                    Color other_color = get_other_color(pm->color);
+                    vector<Move> possible_moves = get_all_valid_moves(other_color);
+                    int sign = pm->maximizing ? 1 : -1;
                     for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
-                        int updated_score = pm.score + sign * (m->piece_replaced == NULL ? 0 : m->piece_replaced->value);
+                        int updated_score = pm->score + sign * (m->piece_replaced == NULL ? 0 : m->piece_replaced->value);
                         // temporary move piece to see if it leads to stalemate/checkmate
                         board->replace_piece(m->move_to, m->piece_moved);
                         board->clear_piece(m->move_from);
-                        if (is_stalemate(other_color())) {
+                        if (is_stalemate(get_other_color(color))) {
                             updated_score -= INT16_MAX / 64;
                         } else if (is_stalemate(color)) {
                             updated_score += INT16_MAX / 64;
                         } else if (is_checkmate(color)) {
                             updated_score -= INT16_MAX;
-                        } else if (is_checkmate(other_color())) {
+                        } else if (is_checkmate(get_other_color(color))) {
                             updated_score += INT16_MAX;
                         }
                         // move piece back
                         board->replace_piece(m->move_to, m->piece_replaced);
                         board->replace_piece(m->move_from, m->piece_moved);
-                        // check if this can be considered as a next best move
-                        if (abs(updated_score) >= abs(next_best_score)) {
-                            PossibleMove best_move = create_possible_move(
-                                other, pm.root, *m, pm.depth + 1, !pm.maximizing, updated_score
-                            );
-                            if (abs(updated_score) > abs(next_best_score)) {
-                                next_best_moves.clear();
-                            }
-                            next_best_moves.push_back(best_move);
-                            next_best_score = updated_score;
-                        }
-                    }
-                    // all the next best moves have the same score, and thus must be checked. Add to stack
-                    for (auto nm = next_best_moves.begin(); nm != next_best_moves.end(); nm++) {
-                        pm_stack.push(*nm);
-                        count++;
-                        // cout << '\r' << "moves considered: " << count;
-                    }
-                } else {
-                    // we've reached the max depth. Update best move accordingly
-                    if (pm.score > best_score) {
-                        best_moves.clear();
-                        best_moves.push_back(pm);
-                        best_score = pm.score;
-                    } else if (pm.score == best_score) {
-                        best_moves.push_back(pm);
+                        // push the possible move into stack with its calculated score
+                        pm_stack.push(create_possible_move(
+                            other_color, pm->root, *m, pm->depth + 1, !pm->maximizing, updated_score, sign * INT16_MAX, pm
+                        ));
                     }
                 }
             }
@@ -271,6 +276,7 @@ public:
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
         // cout << endl;
         // cout << "best score: " << best_score << endl;
+        // cout << "worse score: " << worse_score << endl;
         return best_move.root;
     }
 
@@ -279,9 +285,9 @@ public:
     // Get the current turn's color
     Color get_turn() { return turn; }
     // Get the current enemy's color
-    Color other_color() { return turn == WHITE ? BLACK : WHITE; }
+    Color get_other_color() { return turn == WHITE ? BLACK : WHITE; }
     // Get the current enemy's color
-    Color other_color(Color color) { return color == WHITE ? BLACK : WHITE; }
+    Color get_other_color(Color color) { return color == WHITE ? BLACK : WHITE; }
 
     /*
      * Resets chess game and board state 
