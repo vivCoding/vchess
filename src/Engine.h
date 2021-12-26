@@ -30,8 +30,8 @@ private:
     // structure for storing next possible move. Used for move generation
     struct PossibleMove {
         Color color;
-        Move root, move;
-        int depth, score, best_score;
+        Move root, move, predicted_move;
+        int depth, score, best_score, children_count;
         bool maximizing, visited = false;
         PossibleMove* parent;
     };
@@ -206,18 +206,35 @@ public:
         while (!pm_stack.empty()) {
             PossibleMove* pm = pm_stack.top();
             Move move = pm->move;
-            pm_stack.pop();
             // cout << '\r' << "moves considered: " << count;
             if (pm->visited) {
-                // undo move
+                // remove from stack and undo move
+                pm_stack.pop();
                 board->replace_piece(move.move_to, move.piece_replaced);
                 board->replace_piece(move.move_from, move.piece_moved);
-                if (pm->parent != NULL) {
+                PossibleMove* parent = pm->parent;
+                if (parent != NULL) {
+                    parent->children_count--;
+                    // update best scores, based on minimax
                     if (
-                        (pm->parent->maximizing && pm->best_score > pm->parent->best_score) ||
-                        (!pm->parent->maximizing && pm->best_score < pm->parent->best_score)
+                        (parent->maximizing && pm->best_score > parent->best_score) ||
+                        (!parent->maximizing && pm->best_score < parent->best_score)
                     ) {
-                        pm->parent->best_score = pm->best_score;
+                        parent->best_score = pm->best_score;
+                        if (pm->color == get_other_color(color)) parent->predicted_move = pm->move;
+                    }
+                    // alpba beta pruning
+                    PossibleMove* grandparent = parent->parent;
+                    if (
+                        grandparent != NULL && (
+                            (grandparent->maximizing && parent->best_score < grandparent->best_score) ||
+                            (!grandparent->maximizing && parent->best_score > grandparent->best_score)
+                        )
+                    ) {
+                        while (parent->children_count) {
+                            pm_stack.pop();
+                            parent->children_count--;
+                        }
                     }
                 } else {
                     if (pm->best_score > best_score) {
@@ -236,47 +253,49 @@ public:
                 // move piece to find new possible moves
                 board->replace_piece(move.move_to, move.piece_moved);
                 board->clear_piece(move.move_from);
-                // we've reached bottom, do nothing except mark its score
-                if (pm->depth == level) {
-                    pm->best_score = pm->score;
-                }
                 // mark it visited so we revisit later and undo the move done
                 pm->visited = true;
-                pm_stack.push(pm);
                 // if we haven't reached all levels yet, then push all possible moves for next turn
                 if (pm->depth != level) {
                     Color other_color = get_other_color(pm->color);
                     vector<Move> possible_moves = get_all_valid_moves(other_color);
+                    // used later to keep track of how many of the children are still left in stack
+                    pm->children_count = possible_moves.size();
                     int sign = pm->maximizing ? 1 : -1;
                     for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
-                        int updated_score = pm->score + sign * (m->piece_replaced == NULL ? 0 : m->piece_replaced->value);
+                        int new_score = pm->score + sign * (m->piece_replaced == NULL ? 0 : m->piece_replaced->value);
                         // temporary move piece to see if it leads to stalemate/checkmate
                         board->replace_piece(m->move_to, m->piece_moved);
                         board->clear_piece(m->move_from);
                         if (is_stalemate(get_other_color(color))) {
-                            updated_score -= INT16_MAX / 64;
+                            new_score -= INT16_MAX / 64;
                         } else if (is_stalemate(color)) {
-                            updated_score += INT16_MAX / 64;
+                            new_score += INT16_MAX / 64;
                         } else if (is_checkmate(color)) {
-                            updated_score -= INT16_MAX;
+                            new_score -= INT16_MAX;
                         } else if (is_checkmate(get_other_color(color))) {
-                            updated_score += INT16_MAX;
+                            new_score += INT16_MAX;
                         }
                         // move piece back
                         board->replace_piece(m->move_to, m->piece_replaced);
                         board->replace_piece(m->move_from, m->piece_moved);
                         // push the possible move into stack with its calculated score
                         pm_stack.push(create_possible_move(
-                            other_color, pm->root, *m, pm->depth + 1, !pm->maximizing, updated_score, sign * INT16_MAX, pm
+                            other_color, pm->root, *m, pm->depth + 1, !pm->maximizing, new_score, sign * INT16_MAX, pm
                         ));
                     }
+                } else {
+                    // we have reached all levels, simply set the best_score
+                    pm->best_score = pm->score;
                 }
             }
         }
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
+        // PossibleMove best_move = best_moves.at(0);
         // cout << endl;
         // cout << "best score: " << best_score << endl;
         // cout << "worse score: " << worse_score << endl;
+        // cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
         return best_move.root;
     }
 
