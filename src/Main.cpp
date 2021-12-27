@@ -14,7 +14,7 @@ int main() {
             chess.print_board();
         }
         if (chess.get_turn() == BLACK && !chess.is_checkmate(BLACK)) {
-            Move move = chess.generate_move_2(BLACK);
+            Move move = chess.generate_move(BLACK);
             chess.move_piece(move);
             cout << "BLACK MOVE: " << move.as_string() << endl;
             show_board = true;
@@ -23,7 +23,7 @@ int main() {
         cout << "Type next move or exit: ";
         getline(cin, input);
         if (input == "exit") {
-            cout << "Exited\n";
+            cout << "Exited!\n";
             break;
         } else if (input == "help") {
             cout << "-----\nHELP:\nType \"exit\" to exit program, or \"help\" to bring up this menu.\nType \"reset\" to reset the game.\n";

@@ -33,9 +33,17 @@ private:
         Move root, move, predicted_move;
         int depth, score, best_score, children_count;
         bool maximizing, visited = false;
+        int alpha = INT16_MIN, beta = INT16_MAX;
         PossibleMove* parent;
     };
     // Creates a possible move
+    PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, int alpha, int beta, PossibleMove* parent) {
+        PossibleMove* pm = new PossibleMove();
+        pm->color = color; pm->root = root; pm->move = move; pm->depth = depth;
+        pm->alpha = alpha; pm->beta = beta;
+        pm->score = score; pm->best_score = best_score; pm->parent = parent;
+        return pm;
+    }
     PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, bool maximizing, int score, int best_score, PossibleMove* parent) {
         PossibleMove* pm = new PossibleMove();
         pm->color = color; pm->root = root; pm->move = move; pm->depth = depth;
@@ -179,34 +187,177 @@ public:
      * Calculates and returns the next move for the given color (or current turn color if none is given)
      * Utilizes the chess engine level. If level is low, the function takes less time to complete, but may result in worse moves,
      * while higher levels take more time to calculate and may result in better moves
+     * 
+     * This function implements negamax with alpha-beta pruning
     */
     Move generate_move() { return generate_move(turn); }
     Move generate_move(Color color) {
-        return generate_random_move(color);
+        if (level == 0) return generate_random_move(color);
+        stack<PossibleMove*> pm_stack;
+        vector<PossibleMove> best_moves;
+        int best_score = INT32_MIN, worse_score = INT32_MAX;
+        int root_alpha = INT16_MIN, root_beta = INT16_MAX;
+        Move predicted_move;
+        // first add all the first moves
+        vector<Move> first_moves = get_all_valid_moves(color);
+        int root_children_count = first_moves.size();
+        for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
+            // we are originally maximizing, so the next moves will want to minimize
+            pm_stack.push(create_possible_move(
+                color, *m, *m, 1,
+                calculate_utility(*m), INT32_MIN, INT16_MAX, INT16_MIN, NULL
+            ));
+        }
+        int count = 0;
+        cout << "moves considered: " << count;
+        while (!pm_stack.empty()) {
+            PossibleMove *pm = pm_stack.top();
+            Move move = pm->move;
+            cout << '\r' << "moves considered: " << count;
+            if (pm->visited) {
+                pm_stack.pop();
+                // undo move
+                board->replace_piece(move.move_to, move.piece_replaced);
+                board->replace_piece(move.move_from, move.piece_moved);
+                PossibleMove* parent = pm->parent;
+                int negated_score = pm->depth == level ? pm->best_score : -pm->best_score;
+                // update best scores based on negamax
+                if (parent != NULL) {
+                    parent->children_count--;
+                    if (negated_score > parent->best_score) {
+                        parent->best_score = negated_score;
+                        if (pm->color == get_other_color(color)) parent->predicted_move = pm->move;
+                    }
+                    // alpha beta pruning
+                    parent->alpha = max(parent->alpha, parent->best_score);
+                    if (parent->alpha >= parent->beta) {
+                        while (parent->children_count) {
+                            delete pm_stack.top();
+                            pm_stack.pop();
+                            parent->children_count--;
+                        }
+                    }
+                } else {
+                    root_children_count--;
+                    if (negated_score > best_score) {
+                        best_score = negated_score;
+                        best_moves.clear();
+                        best_moves.push_back(*pm);
+                    } else if (negated_score == best_score) {
+                        best_moves.push_back(*pm);
+                    }
+                    if (negated_score < worse_score) {
+                        worse_score = negated_score;
+                    }
+                    // alpha beta pruning, but on the root
+                    root_alpha = max(root_alpha, best_score);
+                    if (root_alpha >= root_beta) {
+                        while (root_children_count) {
+                            delete pm_stack.top();
+                            pm_stack.pop();
+                            root_children_count--;
+                        }
+                    }
+                }
+                delete pm;
+                count++;
+            } else {
+                // move piece to find new possible moves
+                board->replace_piece(move.move_to, move.piece_moved);
+                board->clear_piece(move.move_from);
+                // mark it visited so we revisit later and undo the move done
+                pm->visited = true;
+                // update to get the latest alphas and betas for pruning
+                if (pm->parent != NULL) {
+                    pm->alpha = -pm->parent->beta;
+                    pm->beta = -pm->parent->alpha;
+                } else {
+                    pm->alpha = -root_beta;
+                    pm->beta = -root_alpha;
+                }
+                // if we haven't reached all levels yet, then push all possible moves for next turn
+                if (pm->depth != level) {
+                    Color other_color = get_other_color(pm->color);
+                    int sign = other_color == color ? 1 : -1;
+                    vector<Move> possible_moves = get_all_valid_moves(other_color);
+                    // used later to keep track of how many of the children are still left in stack
+                    pm->children_count = possible_moves.size();
+                    // if we have no possible nodes, that means we've reached the end of a branch early
+                    if (pm->children_count == 0) {
+                        // set the best_score with current sign (for negamax) and set its to the highest (marking it the end)
+                        int sign = pm->color == color ? 1 : -1;
+                        pm->best_score = sign * pm->score;
+                        pm->depth = level;
+                        continue;
+                    }
+                    for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
+                        int new_score = pm->score + sign * calculate_utility(*m);
+                        // temporary move piece to see if it leads to stalemate/checkmate
+                        board->replace_piece(m->move_to, m->piece_moved);
+                        board->clear_piece(m->move_from);
+                        if (is_stalemate(get_other_color(color))) {
+                            new_score -= INT16_MAX / 64;
+                        } else if (is_stalemate(color)) {
+                            new_score += INT16_MAX / 64;
+                        } else if (is_checkmate(color)) {
+                            new_score -= INT16_MAX;
+                        } else if (is_checkmate(get_other_color(color))) {
+                            new_score += INT16_MAX;
+                        }
+                        // move piece back
+                        board->replace_piece(m->move_to, m->piece_replaced);
+                        board->replace_piece(m->move_from, m->piece_moved);
+                        // push the possible move into stack with its calculated score
+                        pm_stack.push(create_possible_move(
+                            other_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, -pm->beta, -pm->alpha, pm
+                        ));
+                    }
+                } else {
+                    // we have reached all levels, simply set the best_score with current sign (for negamax)
+                    int sign = pm->color == color ? 1 : -1;
+                    pm->best_score = sign * pm->score;
+                }
+            }
+        }
+        PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
+        // PossibleMove best_move = best_moves.at(0);
+        cout << endl;
+        cout << "best score: " << best_score << endl;
+        cout << "worse score: " << worse_score << endl;
+        cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
+        return best_move.root;
     }
+
+    /*
+     * Calculates and returns the next move for the given color (or current turn color if none is given)
+     * Utilizes the chess engine level. If level is low, the function takes less time to complete, but may result in worse moves,
+     * while higher levels take more time to calculate and may result in better moves
+     * 
+     * This function uses basic minimax algorithm with alpha-beta pruning
+    */
     Move generate_move_2() { return generate_move(turn); }
     Move generate_move_2(Color color) {
         if (level == 0) return generate_random_move(color);
         stack<PossibleMove*> pm_stack;
         vector<PossibleMove> best_moves;
         Move predicted_move;
-        int best_score = INT32_MIN;
-        int worse_score = INT32_MAX;
+        int best_score = INT16_MIN;
+        int worse_score = INT16_MAX;
         // first add all the first moves
         vector<Move> first_moves = get_all_valid_moves(color);
         for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
             // we are originally maximizing, so the next moves will want to minimize
             pm_stack.push(create_possible_move(
                 color, *m, *m, 1, false,
-                m->piece_replaced == NULL ? 0 : m->piece_replaced->value, INT32_MAX, NULL
+                calculate_utility(*m), INT16_MAX, NULL
             ));
         }
         int count = 0;
-        // cout << "moves considered: " << count;
+        cout << "moves considered: " << count;
         while (!pm_stack.empty()) {
             PossibleMove* pm = pm_stack.top();
             Move move = pm->move;
-            // cout << '\r' << "moves considered: " << count;
+            cout << '\r' << "moves considered: " << count;
             if (pm->visited) {
                 // remove from stack and undo move
                 pm_stack.pop();
@@ -222,19 +373,20 @@ public:
                     ) {
                         parent->best_score = pm->best_score;
                         if (pm->color == get_other_color(color)) parent->predicted_move = pm->move;
-                    }
-                    // alpba beta pruning
-                    PossibleMove* grandparent = parent->parent;
-                    if (
-                        grandparent != NULL && (
-                            (grandparent->maximizing && parent->best_score < grandparent->best_score) ||
-                            (!grandparent->maximizing && parent->best_score > grandparent->best_score)
-                        )
-                    ) {
-                        while (parent->children_count) {
-                            pm_stack.pop();
-                            parent->children_count--;
-                        }
+                        // alpba beta pruning
+                        // PossibleMove* grandparent = parent->parent;
+                        // if (
+                        //     grandparent != NULL && (
+                        //         (grandparent->maximizing && parent->best_score < grandparent->best_score) ||
+                        //         (!grandparent->maximizing && parent->best_score > grandparent->best_score)
+                        //     )
+                        // ) {
+                        //     while (parent->children_count) {
+                        //         delete pm_stack.top();
+                        //         pm_stack.pop();
+                        //         parent->children_count--;
+                        //     }
+                        // }
                     }
                 } else {
                     if (pm->best_score > best_score) {
@@ -248,6 +400,7 @@ public:
                         worse_score = pm->best_score;
                     }
                 }
+                delete pm;
                 count++;
             } else {
                 // move piece to find new possible moves
@@ -263,7 +416,7 @@ public:
                     pm->children_count = possible_moves.size();
                     int sign = pm->maximizing ? 1 : -1;
                     for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
-                        int new_score = pm->score + sign * (m->piece_replaced == NULL ? 0 : m->piece_replaced->value);
+                        int new_score = pm->score + sign * calculate_utility(*m);
                         // temporary move piece to see if it leads to stalemate/checkmate
                         board->replace_piece(m->move_to, m->piece_moved);
                         board->clear_piece(m->move_from);
@@ -291,12 +444,18 @@ public:
             }
         }
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
-        // PossibleMove best_move = best_moves.at(0);
-        // cout << endl;
-        // cout << "best score: " << best_score << endl;
-        // cout << "worse score: " << worse_score << endl;
-        // cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
+        cout << endl;
+        cout << "best score: " << best_score << endl;
+        cout << "worse score: " << worse_score << endl;
+        cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
         return best_move.root;
+    }
+
+    /*
+     * Calculates utility (rating) for a given move
+    */
+    int calculate_utility(Move m) {
+        return m.piece_replaced == NULL ? 0 : m.piece_replaced->value;
     }
 
     // Swap turn to play next move
