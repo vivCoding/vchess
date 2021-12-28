@@ -70,7 +70,7 @@ private:
         if (board->within_boundaries(m.move_from) && board->within_boundaries(m.move_to)) {
             make_valid_move(m);
             bool in_check = is_check(color);
-            delete undo_move();
+            undo_move();
             return in_check;
         }
         return false;
@@ -256,7 +256,7 @@ public:
             cout << '\r' << "moves considered: " << count;
             if (pm->visited) {
                 pm_stack.pop();
-                delete undo_move();
+                undo_move();
                 PossibleMove* parent = pm->parent;
                 int negated_score = -pm->best_score;
                 // update best scores based on negamax
@@ -336,7 +336,7 @@ public:
                         else if (is_stalemate(color)) new_score += INT16_MAX / 64;
                         else if (is_checkmate(color)) new_score -= INT16_MAX / 2;
                         else if (is_checkmate(other_color)) new_score += INT16_MAX / 2;
-                        delete undo_move();
+                        undo_move();
                         pms.push_back(create_possible_move(
                             new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, pm
                         ));
@@ -373,6 +373,8 @@ public:
      * Calculates utility (score) for a given move based several factors
      * - material value of captured (if any) piece
      * - mobility value (how many moves it can take afterwards)
+     * - center value (how close it is to the center)
+     * - position value (how good is it's position according to the piece)
     */
     int calculate_utility(Move m) {
         Piece* moved = m.piece_moved;
@@ -385,8 +387,8 @@ public:
         int mobility = moved->get_valid_moves(board).size() - old_mobility;
         int center_value = center_distance_scores[8 * m.move_from.y + m.move_from.x] - center_distance_scores[8 * m.move_to.y + m.move_to.x];
         int position_value = moved->get_square_table_value(is_end_game()) - old_position_value;
-        delete undo_move();
-        return 5 * material + 2 * center_value + mobility + 1.5 * position_value;
+        undo_move();
+        return 6 * material + 2 * center_value + mobility + 1.5 * position_value;
     }
 
     /*
@@ -412,25 +414,30 @@ public:
     #pragma endregion EVALUATION
 
     /*
-     * Undo and return the last move added to the moves history.
+     * Undo the last move added to the moves history. Note that this does not return any data, and it destroys the last move (deallocate memory).
+     * Thus if the data for the last move is needed, it should be retrieved and dealt with before calling undo_move()
     */
-    Move* undo_move() {
-        if (move_history.empty()) return NULL;
+    void undo_move() {
+        if (move_history.empty()) return;
         Move* m = move_history.back();
         board->replace_piece(m->move_to, m->piece_replaced);
         board->replace_piece(m->move_from, m->piece_moved);
+        delete m;
         move_history.pop_back();
-        return m;
     }
 
     /*
      * Returns the move in history given index, where index is 0th index starting from the oldest move added to it
-     * E.g. peek_history(2) will return the 2nd most recent move added to the history
     */
     Move* peek_history(int index) {
         if (index < 0 || index >= (int) move_history.size()) return NULL;
         return move_history.at(index);
     }
+
+    /*
+     * Return the most recent move in history
+    */
+    Move* peek_history_back() { return peek_history(move_history.size() - 1); }
 
     // Returns move history size
     int move_history_size() { return move_history.size(); }

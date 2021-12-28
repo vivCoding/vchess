@@ -42,14 +42,18 @@ int main() {
             cout << "Game reset with chess level " << chess.get_level() << "!\n";
             show_board = true;
         } else if (input == "undo") {
-            Move* m = chess.undo_move();
-            if (m != NULL) {
-                cout << "Undo move " << m->as_string() << " success!" << endl;
-            } else {
-                cout << "No moves to undo!" << endl;
+            for (int i = 0; i < 2; i++) {
+                Move* m = chess.peek_history_back();
+                if (m != NULL) {
+                    cout << "Undo move " << m->as_string() << " success!" << endl;
+                    chess.undo_move();
+                    chess.next_turn();
+                    cout << "size: " << chess.move_history_size() << endl;
+                } else {
+                    cout << "No moves to undo!" << endl;
+                }
             }
             show_board = true;
-            delete m;
         } else if(input == "print") {
             show_board = true;
         } else if (input == "history") {
