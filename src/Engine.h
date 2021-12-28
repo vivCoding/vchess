@@ -12,14 +12,13 @@ using namespace std;
  * Represents a chess game, with functions to move chess pieces and uphold the rules of chess (e.g. check, checkmate, turns)
  * Can generate the "best" move for specific color
 */
-// TODO: implement undo/history
-// TODO: simple move
 class ChessEngine {
 #pragma region CHESS_ENGINE_PRIVATE
 private:
     Board* board;
     Color turn;
     int level;
+    vector<Move*> move_history;
 
     // random stuff
     random_device rd;
@@ -41,33 +40,41 @@ private:
         PossibleMove* parent;
     };
     // Creates a possible move
-    PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, int alpha, int beta, PossibleMove* parent) {
+    PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, PossibleMove* parent) {
         PossibleMove* pm = new PossibleMove();
         pm->color = color; pm->root = root; pm->move = move; pm->depth = depth;
-        pm->alpha = alpha; pm->beta = beta;
         pm->score = score; pm->best_score = best_score; pm->parent = parent;
         return pm;
     }
     // comparator used for sorting
     static bool compare_possible_move(PossibleMove* pm, PossibleMove* pm2) {
-        return pm->score < pm2->best_score;
+        return pm->score < pm2->score;
     }
 
-    // https://www.chessprogramming.org/Center_Manhattan-Distance
-    const int distance_from_center[64] = {
-        6, 5, 4, 3, 3, 4, 5, 6,
-        5, 4, 3, 2, 2, 3, 4, 5,
-        4, 3, 2, 1, 1, 2, 3, 4,
-        3, 2, 1, 0, 0, 1, 2, 3,
-        3, 2, 1, 0, 0, 1, 2, 3,
-        4, 3, 2, 1, 1, 2, 3, 4,
-        5, 4, 3, 2, 2, 3, 4, 5,
-        6, 5, 4, 3, 3, 4, 5, 6
+    // Based on https://www.chessprogramming.org/Center_Manhattan-Distance, and inversed to appropriately show scores
+    const int center_distance_scores[64] = {
+        0, 1, 2, 3, 3, 2, 1, 0,
+        1, 2, 3, 4, 4, 3, 2, 1,
+        2, 3, 4, 5, 5, 4, 3, 2,
+        3, 4, 5, 6, 6, 5, 4, 3,
+        3, 4, 5, 6, 6, 5, 4, 3,
+        2, 3, 4, 5, 5, 4, 3, 2,
+        1, 2, 3, 4, 4, 3, 2, 1,
+        0, 1, 2, 3, 3, 2, 1, 0
     };
 
     /*
      * Checks if a move will result in check
     */
+    bool will_check(Move m, Color color) {
+        if (board->within_boundaries(m.move_from) && board->within_boundaries(m.move_to)) {
+            make_valid_move(m);
+            bool in_check = is_check(color);
+            delete undo_move();
+            return in_check;
+        }
+        return false;
+    }
     bool will_check(Vector from, Vector to) { return will_check(from, to, turn); }
     bool will_check(Vector from, Vector to, Color color) {
         if (board->within_boundaries(from) && board->within_boundaries(to)) {
@@ -85,6 +92,16 @@ private:
     }
 
     /*
+     * Assumes the move passed in is valid (to avoid additional function calls), performs move, and adds to move history
+    */
+    void make_valid_move(Move m) {
+        Move* to_store = new Move(m.move_from, m.move_to, m.piece_moved, m.piece_replaced);
+        board->replace_piece(m.move_to, m.piece_moved);
+        board->clear_piece(m.move_from);
+        move_history.push_back(to_store);
+    }
+
+    /*
      * Returns all possible (valid) moves for a specific color
     */
     vector<Move> get_all_valid_moves() { return get_all_valid_moves(turn); }
@@ -93,33 +110,38 @@ private:
         vector<Piece*> pieces = board->get_pieces(color);
         for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
             Piece* p = *pa;
-            vector<Vector> valid_moves = p->get_valid_moves(board);
-            Vector from = p->position;
+            vector<Move> valid_moves = p->get_valid_moves(board);
             for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-                if (!will_check(from, *m, color)) {
-                    possible_moves.push_back(Move(from, *m, p, board->get_piece(*m)));
+                if (!will_check(*m, color)) {
+                    possible_moves.push_back(*m);
                 }
             }
         }
         return possible_moves;
     }
+
 #pragma endregion CHESS_ENGINE_PRIVATE
+
 #pragma region CHESS_ENGINE_PUBLIC
 public:
     ChessEngine() : board(new Board()), turn(WHITE), level(0), rng(mt19937(rd())) {}
     ChessEngine(int level) : board(new Board()), turn(WHITE), level(level), rng(mt19937(rd())) {}
 
     /*
-     * Move piece from (px, py) to (nx, y)
+     * Move piece from (fx, fy) to (tx, ty)
      * Returns true if it's a valid move, or false if the move is invalid or the move would result in a check for the current turn
+     * If it's a valid move, it performs the move and adds to move history
     */
-    bool move_piece(Move move) { return move_piece(move.move_from, move.move_to); }
     bool move_piece(int fx, int fy, int tx, int ty) { return move_piece(Vector(fx, fy), Vector(tx, ty)); }
-    bool move_piece(Vector from, Vector to) {
-        Piece *p = board->get_piece(from);
-        if (p != NULL && p->color == turn && p->is_valid_move(to, board) && !will_check(from, to)) {
-            board->replace_piece(to, board->get_piece(from));
-            board->clear_piece(from);
+    bool move_piece(Vector from, Vector to) { return move_piece(Move(from, to, board->get_piece(from), board->get_piece(to))); }
+    bool move_piece(Move m) {
+        if (
+            m.piece_moved != NULL &&
+            m.piece_moved->color == turn &&
+            m.piece_moved->is_valid_move(m.move_to, board) &&
+            !will_check(m, turn)
+        ) {
+            make_valid_move(m);
             next_turn();
             return true;
         }
@@ -134,9 +156,9 @@ public:
         Vector king_position = board->get_king(color)->position;
         vector<Piece*> pieces = board->get_pieces(get_other_color(color));
         for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
-            vector<Vector> valid_moves = (*pa)->get_valid_moves(board);
+            vector<Move> valid_moves = (*pa)->get_valid_moves(board);
             for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-                if (m->equal_to(king_position)) {
+                if (m->move_to.equal_to(king_position)) {
                     return true;
                 }
             }
@@ -154,12 +176,10 @@ public:
             // this is faster than finding all possible moves first, since here we could return right away
             vector<Piece*> pieces = board->get_pieces(color);
             for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
-                Piece* p = *pa;
-                vector<Vector> valid_moves = p->get_valid_moves(board);
-                Vector from = p->position;
+                vector<Move> valid_moves = (*pa)->get_valid_moves(board);
                 for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
                     // if we have at least one valid move, that means we can still prevent check
-                    if (!will_check(from, *m, color)) {
+                    if (!will_check(*m, color)) {
                         return false;
                     }
                 }
@@ -177,8 +197,8 @@ public:
         if (!is_check(color)) {
             vector<Piece *> pieces = board->get_pieces(color);
             for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
-                vector<Vector> valid_moves = (*pa)->get_valid_moves(board);
-                // if we have at least 1 valid move, then we're not in stalemate
+                vector<Move> valid_moves = (*pa)->get_valid_moves(board);
+                // if we have at least one valid move, then we're not in stalemate
                 if (valid_moves.size() != 0) {
                     return false;
                 }
@@ -188,6 +208,7 @@ public:
         return false;
     }
 
+    #pragma region MOVE_GENERATION
     /*
      * Randomnly generates the next (valid) move for the given color (or current turn color if none is given)
     */
@@ -219,7 +240,7 @@ public:
         for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
             first_pms.push_back(create_possible_move(
                 other_color, *m, *m, 1,
-                calculate_utility(*m), INT32_MIN, root_alpha, root_beta, NULL
+                calculate_utility(*m), INT32_MIN, NULL
             ));
         }
         // sort for slightly better pruning
@@ -235,9 +256,7 @@ public:
             cout << '\r' << "moves considered: " << count;
             if (pm->visited) {
                 pm_stack.pop();
-                // undo move
-                board->replace_piece(move.move_to, move.piece_replaced);
-                board->replace_piece(move.move_from, move.piece_moved);
+                delete undo_move();
                 PossibleMove* parent = pm->parent;
                 int negated_score = -pm->best_score;
                 // update best scores based on negamax
@@ -283,8 +302,7 @@ public:
                 count++;
             } else {
                 // move piece to find new possible moves
-                board->replace_piece(move.move_to, move.piece_moved);
-                board->clear_piece(move.move_from);
+                make_valid_move(move);
                 // mark it visited so we revisit later and undo the move done
                 pm->visited = true;
                 // if we haven't reached all levels yet, then push all possible moves for next turn
@@ -298,7 +316,7 @@ public:
                         pm->beta = -root_alpha;
                     }
                     vector<Move> possible_moves = get_all_valid_moves(pm->color);
-                    // used later to keep track of how many of the children are still left in stack
+                    // used later to keep track of how many of the children are still left in stack and potentially remove them
                     pm->children_count = possible_moves.size();
                     // if we have no possible moves, that means we've reached the end of a branch early
                     if (pm->children_count == 0) {
@@ -313,28 +331,24 @@ public:
                     for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
                         int new_score = pm->score + sign * calculate_utility(*m);
                         // temporary move piece to see if it leads to stalemate/checkmate
-                        board->replace_piece(m->move_to, m->piece_moved);
-                        board->clear_piece(m->move_from);
-                        if (is_stalemate(other_color)) {
-                            new_score -= INT16_MAX / 64;
-                        } else if (is_stalemate(color)) {
-                            new_score += INT16_MAX / 64;
-                        } else if (is_checkmate(color)) {
-                            new_score -= INT16_MAX / 2;
-                        } else if (is_checkmate(other_color)) {
-                            new_score += INT16_MAX / 2;
-                        }
-                        // move piece back
-                        board->replace_piece(m->move_to, m->piece_replaced);
-                        board->replace_piece(m->move_from, m->piece_moved);
-                        // push the possible move into stack with its calculated score
+                        make_valid_move(*m);
+                        if (is_stalemate(other_color)) new_score -= INT16_MAX / 64;
+                        else if (is_stalemate(color)) new_score += INT16_MAX / 64;
+                        else if (is_checkmate(color)) new_score -= INT16_MAX / 2;
+                        else if (is_checkmate(other_color)) new_score += INT16_MAX / 2;
+                        delete undo_move();
                         pms.push_back(create_possible_move(
-                            new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, -pm->beta, -pm->alpha, pm
+                            new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, pm
                         ));
                     }
-                    // sorting them for slightly better pruning
+                    // sorting them for slightly better pruning. Add to stack ascending or descending score based on color
+                    // If our color, add them ascending (consider large options first, as we're maximizing).
+                    // Vice versa, the other color is minimizing, so add them descending order to consider smaller options first
                     sort(pms.begin(), pms.end(), compare_possible_move);
-                    for (auto pm = pms.begin(); pm != pms.end(); pm++) {
+                    auto start = pm->color == color ? pms.begin() : pms.end() - 1;
+                    auto end = pm->color == color ? pms.end() : pms.begin() - 1;
+                    int step = pm->color == color ? 1 : -1;
+                    for (auto pm = start; pm != end; pm += step) {
                         pm_stack.push(*pm);
                     }
                 } else {
@@ -344,13 +358,16 @@ public:
             }
         }
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
-        // PossibleMove best_move = best_moves.at(0);
         cout << endl;
         // cout << "best score: " << best_score << endl;
         // cout << "worse score: " << worst_score << endl;
         // cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
         return best_move.root;
     }
+
+    #pragma endregion MOVE_GENERATION
+
+    #pragma region EVALUATION
 
     /*
      * Calculates utility (score) for a given move based several factors
@@ -361,17 +378,15 @@ public:
         Piece* moved = m.piece_moved;
         Piece* captured = m.piece_replaced;
         int old_mobility = moved->get_valid_moves(board).size();
+        int old_position_value = moved->get_square_table_value(is_end_game());
         // temporary move piece to check mobility and other factors
-        board->replace_piece(m.move_to, moved);
-        board->clear_piece(m.move_from);
+        make_valid_move(m);
         int material = captured == NULL ? 0 : captured->get_value();
-        int mobility = moved->get_valid_moves(board).size();
-        int center_distance = distance_from_center[8 * m.move_from.x + m.move_from.y] - distance_from_center[8 * m.move_to.x + m.move_to.y];
-        int piece_square_value = moved->get_square_table_value(is_end_game());
-        // move piece back
-        board->replace_piece(m.move_to, captured);
-        board->replace_piece(m.move_from, moved);
-        return 10 * material + 2 * center_distance + 2 * mobility + piece_square_value;
+        int mobility = moved->get_valid_moves(board).size() - old_mobility;
+        int center_value = center_distance_scores[8 * m.move_from.y + m.move_from.x] - center_distance_scores[8 * m.move_to.y + m.move_to.x];
+        int position_value = moved->get_square_table_value(is_end_game()) - old_position_value;
+        delete undo_move();
+        return 5 * material + 2 * center_value + mobility + 1.5 * position_value;
     }
 
     /*
@@ -394,14 +409,31 @@ public:
         return abs(white_values - black_values) >= 10 || abs(count_diff) > 10;
     }
 
-    // Swap turn to play next move
-    void next_turn() { turn = turn == WHITE ? BLACK : WHITE; }
-    // Get the current turn's color
-    Color get_turn() { return turn; }
-    // Get the current enemy's color
-    Color get_other_color() { return turn == WHITE ? BLACK : WHITE; }
-    // Get the current enemy's color
-    Color get_other_color(Color color) { return color == WHITE ? BLACK : WHITE; }
+    #pragma endregion EVALUATION
+
+    /*
+     * Undo and return the last move added to the moves history.
+    */
+    Move* undo_move() {
+        if (move_history.empty()) return NULL;
+        Move* m = move_history.back();
+        board->replace_piece(m->move_to, m->piece_replaced);
+        board->replace_piece(m->move_from, m->piece_moved);
+        move_history.pop_back();
+        return m;
+    }
+
+    /*
+     * Returns the move in history given index, where index is 0th index starting from the oldest move added to it
+     * E.g. peek_history(2) will return the 2nd most recent move added to the history
+    */
+    Move* peek_history(int index) {
+        if (index < 0 || index >= (int) move_history.size()) return NULL;
+        return move_history.at(index);
+    }
+
+    // Returns move history size
+    int move_history_size() { return move_history.size(); }
 
     /*
      * Resets chess game and board state 
@@ -413,7 +445,19 @@ public:
         board = new Board();
         turn = WHITE;
         this->level = level;
+        while (move_history.size()) {
+            delete move_history.back();
+            move_history.pop_back();
+        }
     }
+
+    // Swap turn to play next move
+    void next_turn() { turn = turn == WHITE ? BLACK : WHITE; }
+    // Get the current turn's color
+    Color get_turn() { return turn; }
+    // Get the enemy's color
+    Color get_other_color() { return turn == WHITE ? BLACK : WHITE; }
+    Color get_other_color(Color color) { return color == WHITE ? BLACK : WHITE; }
 
     // Returns current chess engine level
     int get_level() { return level; }

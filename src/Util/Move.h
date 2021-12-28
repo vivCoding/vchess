@@ -4,9 +4,11 @@
 #include "Vector.h"
 #include "../Pieces/Piece.h"
 
+class Piece;
 /*
  * Represents a chess move
- * Stores the position of piece to move from, and the position to where the piece needs to move
+ * Stores the position of piece to move from, and the position to where the piece needs to move, as well as pointers to the pieces moved/replaced
+ * Does not handle Piece memory
 */
 class Move {
 private:

@@ -33,8 +33,8 @@ public:
         this->end_square_table = NULL;
     }
 
-    bool is_valid_move(Vector next_move, Board* board);
-    vector<Vector> get_valid_moves(Board* board);
+    bool is_valid_move(Vector next_position, Board *board);
+    vector<Move> get_valid_moves(Board* board);
 };
 
 #endif

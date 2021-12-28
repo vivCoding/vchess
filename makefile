@@ -1,4 +1,4 @@
-CFLAGS = -std=c++11 -Wall -g
+CFLAGS = -std=c++11 -Wall -g -Wno-unknown-pragmas
 CC = g++
 OUTPUT_DIR = _bin
 

@@ -2,6 +2,7 @@
 #define PIECE_H
 
 #include "../Util/Vector.h"
+#include "../Util/Move.h"
 #include "../Board/Colors.h"
 #include "../Board/PieceTypes.h"
 #include <random>
@@ -54,9 +55,14 @@ public:
         , position(starting_pos.x , starting_pos.y)
     { generate_id(); }
 
-    virtual bool is_valid_move(Vector next_move, Board* board);
-    // TODO: convert this to vector<Move>. Maybe convert is_valid_move too
-    virtual vector<Vector> get_valid_moves(Board* board);
+    /*
+     * Takes a Vector position and checks if it's a valid next position (move) for the piece
+    */
+    virtual bool is_valid_move(Vector next_position, Board* board);
+    /*
+     * Gets all the valid moves possible, and returns it as a vector of Moves
+    */
+    virtual vector<Move> get_valid_moves(Board* board);
 
     virtual int get_square_table_value();
     virtual int get_square_table_value(bool endgame);
@@ -64,7 +70,6 @@ public:
 
     int get_value() { return value; }
     string get_id() { return piece_id; }
-
 
     virtual ~Piece() {
         delete moves;
