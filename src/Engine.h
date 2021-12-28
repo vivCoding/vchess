@@ -195,17 +195,17 @@ public:
         if (level == 0) return generate_random_move(color);
         stack<PossibleMove*> pm_stack;
         vector<PossibleMove> best_moves;
-        int best_score = INT32_MIN, worse_score = INT32_MAX;
-        int root_alpha = INT16_MIN, root_beta = INT16_MAX;
-        Move predicted_move;
+        vector<PossibleMove> worst_moves;
+        int best_score = INT32_MIN, worst_score = INT32_MAX;
+        int root_alpha = -INT16_MAX, root_beta = INT16_MAX;
+        Color other_color = get_other_color(color);
         // first add all the first moves
         vector<Move> first_moves = get_all_valid_moves(color);
         int root_children_count = first_moves.size();
         for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
-            // we are originally maximizing, so the next moves will want to minimize
             pm_stack.push(create_possible_move(
-                color, *m, *m, 1,
-                calculate_utility(*m), INT32_MIN, INT16_MAX, INT16_MIN, NULL
+                other_color, *m, *m, 1,
+                calculate_utility(*m), INT32_MIN, root_alpha, root_beta, NULL
             ));
         }
         int count = 0;
@@ -220,17 +220,17 @@ public:
                 board->replace_piece(move.move_to, move.piece_replaced);
                 board->replace_piece(move.move_from, move.piece_moved);
                 PossibleMove* parent = pm->parent;
-                int negated_score = pm->depth == level ? pm->best_score : -pm->best_score;
+                int negated_score = -pm->best_score;
                 // update best scores based on negamax
                 if (parent != NULL) {
                     parent->children_count--;
                     if (negated_score > parent->best_score) {
                         parent->best_score = negated_score;
-                        if (pm->color == get_other_color(color)) parent->predicted_move = pm->move;
+                        if (pm->color == color) parent->predicted_move = pm->move;
                     }
                     // alpha beta pruning
                     parent->alpha = max(parent->alpha, parent->best_score);
-                    if (parent->alpha >= parent->beta) {
+                    if (parent->alpha > parent->beta) {
                         while (parent->children_count) {
                             delete pm_stack.top();
                             pm_stack.pop();
@@ -239,6 +239,7 @@ public:
                     }
                 } else {
                     root_children_count--;
+                    // update root best scores
                     if (negated_score > best_score) {
                         best_score = negated_score;
                         best_moves.clear();
@@ -246,17 +247,21 @@ public:
                     } else if (negated_score == best_score) {
                         best_moves.push_back(*pm);
                     }
-                    if (negated_score < worse_score) {
-                        worse_score = negated_score;
-                    }
                     // alpha beta pruning, but on the root
                     root_alpha = max(root_alpha, best_score);
-                    if (root_alpha >= root_beta) {
+                    if (root_alpha > root_beta) {
                         while (root_children_count) {
                             delete pm_stack.top();
                             pm_stack.pop();
                             root_children_count--;
                         }
+                    }
+                    if (negated_score < worst_score) {
+                        worst_score = negated_score;
+                        worst_moves.clear();
+                        worst_moves.push_back(*pm);
+                    } else if (negated_score == worst_score) {
+                        worst_moves.push_back(*pm);
                     }
                 }
                 delete pm;
@@ -267,49 +272,49 @@ public:
                 board->clear_piece(move.move_from);
                 // mark it visited so we revisit later and undo the move done
                 pm->visited = true;
-                // update to get the latest alphas and betas for pruning
-                if (pm->parent != NULL) {
-                    pm->alpha = -pm->parent->beta;
-                    pm->beta = -pm->parent->alpha;
-                } else {
-                    pm->alpha = -root_beta;
-                    pm->beta = -root_alpha;
-                }
                 // if we haven't reached all levels yet, then push all possible moves for next turn
                 if (pm->depth != level) {
-                    Color other_color = get_other_color(pm->color);
-                    int sign = other_color == color ? 1 : -1;
-                    vector<Move> possible_moves = get_all_valid_moves(other_color);
+                    // update to get the latest alphas and betas for pruning
+                    if (pm->parent != NULL) {
+                        pm->alpha = -pm->parent->beta;
+                        pm->beta = -pm->parent->alpha;
+                    } else {
+                        pm->alpha = -root_beta;
+                        pm->beta = -root_alpha;
+                    }
+                    vector<Move> possible_moves = get_all_valid_moves(pm->color);
                     // used later to keep track of how many of the children are still left in stack
                     pm->children_count = possible_moves.size();
-                    // if we have no possible nodes, that means we've reached the end of a branch early
+                    // if we have no possible moves, that means we've reached the end of a branch early
                     if (pm->children_count == 0) {
-                        // set the best_score with current sign (for negamax) and set its to the highest (marking it the end)
+                        // set the best_score with current sign (for negamax) and set its level to the highest (essentially marking it the end of branch)
                         int sign = pm->color == color ? 1 : -1;
                         pm->best_score = sign * pm->score;
                         pm->depth = level;
                         continue;
                     }
+                    Color new_color = get_other_color(pm->color);
+                    int sign = pm->color == color ? 1 : -1;
                     for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
                         int new_score = pm->score + sign * calculate_utility(*m);
                         // temporary move piece to see if it leads to stalemate/checkmate
                         board->replace_piece(m->move_to, m->piece_moved);
                         board->clear_piece(m->move_from);
-                        if (is_stalemate(get_other_color(color))) {
-                            new_score -= INT16_MAX / 64;
+                        if (is_stalemate(other_color)) {
+                            new_score = -INT16_MAX / 64;
                         } else if (is_stalemate(color)) {
-                            new_score += INT16_MAX / 64;
+                            new_score = INT16_MAX / 64;
                         } else if (is_checkmate(color)) {
-                            new_score -= INT16_MAX;
-                        } else if (is_checkmate(get_other_color(color))) {
-                            new_score += INT16_MAX;
+                            new_score = -INT16_MAX / 2;
+                        } else if (is_checkmate(other_color)) {
+                            new_score = INT16_MAX / 2;
                         }
                         // move piece back
                         board->replace_piece(m->move_to, m->piece_replaced);
                         board->replace_piece(m->move_from, m->piece_moved);
                         // push the possible move into stack with its calculated score
                         pm_stack.push(create_possible_move(
-                            other_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, -pm->beta, -pm->alpha, pm
+                            new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, -pm->beta, -pm->alpha, pm
                         ));
                     }
                 } else {
@@ -322,9 +327,14 @@ public:
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
         // PossibleMove best_move = best_moves.at(0);
         cout << endl;
+        // cout << "worst moves: " << endl;
+        // for (auto pm : worst_moves) {
+        //     cout << "(" << pm.root.as_string() << " - " << pm.predicted_move.as_string() << "), ";
+        // }
         cout << "best score: " << best_score << endl;
-        cout << "worse score: " << worse_score << endl;
+        cout << "worse score: " << worst_score << endl;
         cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
+        cout << "alpha beta: " << best_move.alpha << ", " << best_move.beta << endl;
         return best_move.root;
     }
 
