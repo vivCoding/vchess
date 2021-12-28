@@ -7,6 +7,8 @@
 #include <random>
 #include <vector>
 using std::vector;
+#include <iostream>
+using namespace std;
 
 // forward declare, avoid circular dependencies
 class Board;
@@ -21,6 +23,11 @@ protected:
     int num_moves = 0;
     Vector* moves;
     string piece_id;
+    // material values are standard 10, 30, 50, 90, INTMAX
+    int value;
+    // piece square tables reference: https://www.chessprogramming.org/Simplified_Evaluation_Function
+    int *square_table;
+    int *end_square_table;
 
     void generate_id() {
         string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -33,31 +40,36 @@ protected:
             piece_id += chars[uni(rng)];
         }
     }
+
 public:
     Color color;
     PieceType type;
-    int value;
     Vector position;
 
     Piece() : num_moves(0), type(EMPTY) { generate_id(); }
     Piece(Color color, PieceType type, int value, Vector starting_pos)
-        : color(color)
+        : value(value)
+        , color(color)
         , type(type)
-        , value(value)
         , position(starting_pos.x , starting_pos.y)
     { generate_id(); }
 
     virtual bool is_valid_move(Vector next_move, Board* board);
-    // TODO: convert this to vector<Move>
-    // Maybe convert is_valid_move too
+    // TODO: convert this to vector<Move>. Maybe convert is_valid_move too
     virtual vector<Vector> get_valid_moves(Board* board);
 
-    string get_id() {
-        return piece_id;
-    }
+    virtual int get_square_table_value();
+    virtual int get_square_table_value(bool endgame);
+    virtual int get_square_table_value(int x, int y, bool endgame);
+
+    int get_value() { return value; }
+    string get_id() { return piece_id; }
+
 
     virtual ~Piece() {
         delete moves;
+        delete square_table;
+        delete end_square_table;
     }
 };
 

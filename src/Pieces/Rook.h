@@ -8,7 +8,7 @@
 */
 class Rook : public FastPiece {
 public:
-    Rook(Color color, Vector starting_pos) : FastPiece(color, ROOK, 5, starting_pos) {
+    Rook(Color color, Vector starting_pos) : FastPiece(color, ROOK, 50, starting_pos) {
         this->num_moves = 4;
         this->moves = new Vector[num_moves] {
             Vector(0, 1),
@@ -16,6 +16,17 @@ public:
             Vector(0, -1),
             Vector(-1, 0),
         };
+        this->square_table = new int[64] {
+            0,  0,  0,  0,  0,  0,  0,  0,
+            5, 10, 10, 10, 10, 10, 10,  5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            0,  0,  0,  5,  5,  0,  0,  0
+        };
+        this->end_square_table = NULL;
     }
 };
 

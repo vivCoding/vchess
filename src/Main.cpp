@@ -4,7 +4,7 @@ using namespace std;
 
 
 int main() {
-    ChessEngine chess(3);
+    ChessEngine chess(4);
     string input = "";
     string cols = "abcdefgh";
     bool show_board = true;

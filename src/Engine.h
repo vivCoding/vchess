@@ -5,13 +5,17 @@
 #include "Util/Move.h"
 #include <random>
 #include <stack>
+#include <algorithm>
 using namespace std;
 
 /*
  * Represents a chess game, with functions to move chess pieces and uphold the rules of chess (e.g. check, checkmate, turns)
  * Can generate the "best" move for specific color
 */
+// TODO: implement undo/history
+// TODO: simple move
 class ChessEngine {
+#pragma region CHESS_ENGINE_PRIVATE
 private:
     Board* board;
     Color turn;
@@ -32,7 +36,7 @@ private:
         Color color;
         Move root, move, predicted_move;
         int depth, score, best_score, children_count;
-        bool maximizing, visited = false;
+        bool visited = false;
         int alpha = INT16_MIN, beta = INT16_MAX;
         PossibleMove* parent;
     };
@@ -44,13 +48,22 @@ private:
         pm->score = score; pm->best_score = best_score; pm->parent = parent;
         return pm;
     }
-    PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, bool maximizing, int score, int best_score, PossibleMove* parent) {
-        PossibleMove* pm = new PossibleMove();
-        pm->color = color; pm->root = root; pm->move = move; pm->depth = depth;
-        pm->maximizing = maximizing; pm->score = score; pm->best_score = best_score;
-        pm->parent = parent;
-        return pm;
+    // comparator used for sorting
+    static bool compare_possible_move(PossibleMove* pm, PossibleMove* pm2) {
+        return pm->score < pm2->best_score;
     }
+
+    // https://www.chessprogramming.org/Center_Manhattan-Distance
+    const int distance_from_center[64] = {
+        6, 5, 4, 3, 3, 4, 5, 6,
+        5, 4, 3, 2, 2, 3, 4, 5,
+        4, 3, 2, 1, 1, 2, 3, 4,
+        3, 2, 1, 0, 0, 1, 2, 3,
+        3, 2, 1, 0, 0, 1, 2, 3,
+        4, 3, 2, 1, 1, 2, 3, 4,
+        5, 4, 3, 2, 2, 3, 4, 5,
+        6, 5, 4, 3, 3, 4, 5, 6
+    };
 
     /*
      * Checks if a move will result in check
@@ -90,7 +103,8 @@ private:
         }
         return possible_moves;
     }
-
+#pragma endregion CHESS_ENGINE_PRIVATE
+#pragma region CHESS_ENGINE_PUBLIC
 public:
     ChessEngine() : board(new Board()), turn(WHITE), level(0), rng(mt19937(rd())) {}
     ChessEngine(int level) : board(new Board()), turn(WHITE), level(level), rng(mt19937(rd())) {}
@@ -103,7 +117,7 @@ public:
     bool move_piece(int fx, int fy, int tx, int ty) { return move_piece(Vector(fx, fy), Vector(tx, ty)); }
     bool move_piece(Vector from, Vector to) {
         Piece *p = board->get_piece(from);
-        if (p != NULL && p->is_valid_move(to, board) && !will_check(from, to)) {
+        if (p != NULL && p->color == turn && p->is_valid_move(to, board) && !will_check(from, to)) {
             board->replace_piece(to, board->get_piece(from));
             board->clear_piece(from);
             next_turn();
@@ -195,18 +209,23 @@ public:
         if (level == 0) return generate_random_move(color);
         stack<PossibleMove*> pm_stack;
         vector<PossibleMove> best_moves;
-        vector<PossibleMove> worst_moves;
         int best_score = INT32_MIN, worst_score = INT32_MAX;
         int root_alpha = -INT16_MAX, root_beta = INT16_MAX;
         Color other_color = get_other_color(color);
         // first add all the first moves
         vector<Move> first_moves = get_all_valid_moves(color);
         int root_children_count = first_moves.size();
+        vector<PossibleMove*> first_pms;
         for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
-            pm_stack.push(create_possible_move(
+            first_pms.push_back(create_possible_move(
                 other_color, *m, *m, 1,
                 calculate_utility(*m), INT32_MIN, root_alpha, root_beta, NULL
             ));
+        }
+        // sort for slightly better pruning
+        sort(first_pms.begin(), first_pms.end(), compare_possible_move);
+        for (auto pm = first_pms.begin(); pm != first_pms.end(); pm++) {
+            pm_stack.push(*pm);
         }
         int count = 0;
         cout << "moves considered: " << count;
@@ -258,10 +277,6 @@ public:
                     }
                     if (negated_score < worst_score) {
                         worst_score = negated_score;
-                        worst_moves.clear();
-                        worst_moves.push_back(*pm);
-                    } else if (negated_score == worst_score) {
-                        worst_moves.push_back(*pm);
                     }
                 }
                 delete pm;
@@ -288,184 +303,95 @@ public:
                     // if we have no possible moves, that means we've reached the end of a branch early
                     if (pm->children_count == 0) {
                         // set the best_score with current sign (for negamax) and set its level to the highest (essentially marking it the end of branch)
-                        int sign = pm->color == color ? 1 : -1;
-                        pm->best_score = sign * pm->score;
+                        pm->best_score = (pm->color == color ? 1 : -1) * pm->score;
                         pm->depth = level;
                         continue;
                     }
                     Color new_color = get_other_color(pm->color);
                     int sign = pm->color == color ? 1 : -1;
+                    vector<PossibleMove*> pms;
                     for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
                         int new_score = pm->score + sign * calculate_utility(*m);
                         // temporary move piece to see if it leads to stalemate/checkmate
                         board->replace_piece(m->move_to, m->piece_moved);
                         board->clear_piece(m->move_from);
                         if (is_stalemate(other_color)) {
-                            new_score = -INT16_MAX / 64;
+                            new_score -= INT16_MAX / 64;
                         } else if (is_stalemate(color)) {
-                            new_score = INT16_MAX / 64;
+                            new_score += INT16_MAX / 64;
                         } else if (is_checkmate(color)) {
-                            new_score = -INT16_MAX / 2;
+                            new_score -= INT16_MAX / 2;
                         } else if (is_checkmate(other_color)) {
-                            new_score = INT16_MAX / 2;
+                            new_score += INT16_MAX / 2;
                         }
                         // move piece back
                         board->replace_piece(m->move_to, m->piece_replaced);
                         board->replace_piece(m->move_from, m->piece_moved);
                         // push the possible move into stack with its calculated score
-                        pm_stack.push(create_possible_move(
+                        pms.push_back(create_possible_move(
                             new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, -pm->beta, -pm->alpha, pm
                         ));
                     }
+                    // sorting them for slightly better pruning
+                    sort(pms.begin(), pms.end(), compare_possible_move);
+                    for (auto pm = pms.begin(); pm != pms.end(); pm++) {
+                        pm_stack.push(*pm);
+                    }
                 } else {
                     // we have reached all levels, simply set the best_score with current sign (for negamax)
-                    int sign = pm->color == color ? 1 : -1;
-                    pm->best_score = sign * pm->score;
+                    pm->best_score = (pm->color == color ? 1 : -1) * pm->score;
                 }
             }
         }
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
         // PossibleMove best_move = best_moves.at(0);
         cout << endl;
-        // cout << "worst moves: " << endl;
-        // for (auto pm : worst_moves) {
-        //     cout << "(" << pm.root.as_string() << " - " << pm.predicted_move.as_string() << "), ";
-        // }
-        cout << "best score: " << best_score << endl;
-        cout << "worse score: " << worst_score << endl;
-        cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
-        cout << "alpha beta: " << best_move.alpha << ", " << best_move.beta << endl;
+        // cout << "best score: " << best_score << endl;
+        // cout << "worse score: " << worst_score << endl;
+        // cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
         return best_move.root;
     }
 
     /*
-     * Calculates and returns the next move for the given color (or current turn color if none is given)
-     * Utilizes the chess engine level. If level is low, the function takes less time to complete, but may result in worse moves,
-     * while higher levels take more time to calculate and may result in better moves
-     * 
-     * This function uses basic minimax algorithm with alpha-beta pruning
-    */
-    Move generate_move_2() { return generate_move(turn); }
-    Move generate_move_2(Color color) {
-        if (level == 0) return generate_random_move(color);
-        stack<PossibleMove*> pm_stack;
-        vector<PossibleMove> best_moves;
-        Move predicted_move;
-        int best_score = INT16_MIN;
-        int worse_score = INT16_MAX;
-        // first add all the first moves
-        vector<Move> first_moves = get_all_valid_moves(color);
-        for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
-            // we are originally maximizing, so the next moves will want to minimize
-            pm_stack.push(create_possible_move(
-                color, *m, *m, 1, false,
-                calculate_utility(*m), INT16_MAX, NULL
-            ));
-        }
-        int count = 0;
-        cout << "moves considered: " << count;
-        while (!pm_stack.empty()) {
-            PossibleMove* pm = pm_stack.top();
-            Move move = pm->move;
-            cout << '\r' << "moves considered: " << count;
-            if (pm->visited) {
-                // remove from stack and undo move
-                pm_stack.pop();
-                board->replace_piece(move.move_to, move.piece_replaced);
-                board->replace_piece(move.move_from, move.piece_moved);
-                PossibleMove* parent = pm->parent;
-                if (parent != NULL) {
-                    parent->children_count--;
-                    // update best scores, based on minimax
-                    if (
-                        (parent->maximizing && pm->best_score > parent->best_score) ||
-                        (!parent->maximizing && pm->best_score < parent->best_score)
-                    ) {
-                        parent->best_score = pm->best_score;
-                        if (pm->color == get_other_color(color)) parent->predicted_move = pm->move;
-                        // alpba beta pruning
-                        // PossibleMove* grandparent = parent->parent;
-                        // if (
-                        //     grandparent != NULL && (
-                        //         (grandparent->maximizing && parent->best_score < grandparent->best_score) ||
-                        //         (!grandparent->maximizing && parent->best_score > grandparent->best_score)
-                        //     )
-                        // ) {
-                        //     while (parent->children_count) {
-                        //         delete pm_stack.top();
-                        //         pm_stack.pop();
-                        //         parent->children_count--;
-                        //     }
-                        // }
-                    }
-                } else {
-                    if (pm->best_score > best_score) {
-                        best_score = pm->best_score;
-                        best_moves.clear();
-                        best_moves.push_back(*pm);
-                    } else if (pm->best_score == best_score) {
-                        best_moves.push_back(*pm);
-                    }
-                    if (pm->best_score < worse_score) {
-                        worse_score = pm->best_score;
-                    }
-                }
-                delete pm;
-                count++;
-            } else {
-                // move piece to find new possible moves
-                board->replace_piece(move.move_to, move.piece_moved);
-                board->clear_piece(move.move_from);
-                // mark it visited so we revisit later and undo the move done
-                pm->visited = true;
-                // if we haven't reached all levels yet, then push all possible moves for next turn
-                if (pm->depth != level) {
-                    Color other_color = get_other_color(pm->color);
-                    vector<Move> possible_moves = get_all_valid_moves(other_color);
-                    // used later to keep track of how many of the children are still left in stack
-                    pm->children_count = possible_moves.size();
-                    int sign = pm->maximizing ? 1 : -1;
-                    for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
-                        int new_score = pm->score + sign * calculate_utility(*m);
-                        // temporary move piece to see if it leads to stalemate/checkmate
-                        board->replace_piece(m->move_to, m->piece_moved);
-                        board->clear_piece(m->move_from);
-                        if (is_stalemate(get_other_color(color))) {
-                            new_score -= INT16_MAX / 64;
-                        } else if (is_stalemate(color)) {
-                            new_score += INT16_MAX / 64;
-                        } else if (is_checkmate(color)) {
-                            new_score -= INT16_MAX;
-                        } else if (is_checkmate(get_other_color(color))) {
-                            new_score += INT16_MAX;
-                        }
-                        // move piece back
-                        board->replace_piece(m->move_to, m->piece_replaced);
-                        board->replace_piece(m->move_from, m->piece_moved);
-                        // push the possible move into stack with its calculated score
-                        pm_stack.push(create_possible_move(
-                            other_color, pm->root, *m, pm->depth + 1, !pm->maximizing, new_score, sign * INT16_MAX, pm
-                        ));
-                    }
-                } else {
-                    // we have reached all levels, simply set the best_score
-                    pm->best_score = pm->score;
-                }
-            }
-        }
-        PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
-        cout << endl;
-        cout << "best score: " << best_score << endl;
-        cout << "worse score: " << worse_score << endl;
-        cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
-        return best_move.root;
-    }
-
-    /*
-     * Calculates utility (rating) for a given move
+     * Calculates utility (score) for a given move based several factors
+     * - material value of captured (if any) piece
+     * - mobility value (how many moves it can take afterwards)
     */
     int calculate_utility(Move m) {
-        return m.piece_replaced == NULL ? 0 : m.piece_replaced->value;
+        Piece* moved = m.piece_moved;
+        Piece* captured = m.piece_replaced;
+        int old_mobility = moved->get_valid_moves(board).size();
+        // temporary move piece to check mobility and other factors
+        board->replace_piece(m.move_to, moved);
+        board->clear_piece(m.move_from);
+        int material = captured == NULL ? 0 : captured->get_value();
+        int mobility = moved->get_valid_moves(board).size();
+        int center_distance = distance_from_center[8 * m.move_from.x + m.move_from.y] - distance_from_center[8 * m.move_to.x + m.move_to.y];
+        int piece_square_value = moved->get_square_table_value(is_end_game());
+        // move piece back
+        board->replace_piece(m.move_to, captured);
+        board->replace_piece(m.move_from, moved);
+        return 10 * material + 2 * center_distance + 2 * mobility + piece_square_value;
+    }
+
+    /*
+     * Tries to determine whether the current game is close to the end by checking the difference between the total piece values between
+     * the two colors, as well as the total numbeof pieces on each side
+    */
+    bool is_end_game() {
+        vector<Piece*> white_pieces = board->get_pieces(WHITE);
+        vector<Piece*> black_pieces = board->get_pieces(BLACK);
+        int white_values = 0, black_values = 0;
+        for (auto pa = white_pieces.begin(); pa != white_pieces.end(); pa++) {
+            Piece* p = *pa;
+            if (p->type != KING) white_values += p->get_value();
+        }
+        for (auto pa = black_pieces.begin(); pa != black_pieces.end(); pa++) {
+            Piece* p = *pa;
+            if (p->type != KING) black_values += p->get_value();
+        }
+        int count_diff = white_pieces.size() - black_pieces.size();
+        return abs(white_values - black_values) >= 10 || abs(count_diff) > 10;
     }
 
     // Swap turn to play next move
@@ -508,6 +434,7 @@ public:
     ~ChessEngine() {
         delete board;
     }
+#pragma endregion CHESS_ENGINE_PUBLIC
 };
 
 #endif
