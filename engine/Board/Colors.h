@@ -8,7 +8,6 @@
 enum Color {
     WHITE = 'w',
     BLACK = 'b',
-    NONE = '.',
 };
 
 #endif

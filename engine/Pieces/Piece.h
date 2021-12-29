@@ -24,7 +24,7 @@ protected:
     int num_moves = 0;
     Vector* moves;
     string piece_id;
-    // material values are standard 10, 30, 50, 90, INTMAX
+    // material value
     int value;
     // piece square tables reference: https://www.chessprogramming.org/Simplified_Evaluation_Function
     int *square_table;
@@ -55,19 +55,17 @@ public:
         , position(starting_pos.x , starting_pos.y)
     { generate_id(); }
 
-    /*
-     * Takes a Vector position and checks if it's a valid next position (move) for the piece
-    */
+    // Takes a Vector position and checks if it's a valid next position (move) for the piece
     virtual bool is_valid_move(Vector next_position, Board* board);
-    /*
-     * Gets all the valid moves possible, and returns it as a vector of Moves
-    */
+    // Gets all the valid moves possible, and returns it as a vector of Moves
     virtual vector<Move> get_valid_moves(Board* board);
 
+    // Gets piece square function table for piece
     virtual int get_square_table_value();
     virtual int get_square_table_value(bool endgame);
     virtual int get_square_table_value(int x, int y, bool endgame);
 
+    // get material value for piece
     int get_value() { return value; }
     string get_id() { return piece_id; }
 

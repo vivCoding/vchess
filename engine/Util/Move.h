@@ -29,6 +29,9 @@ public:
         , piece_moved(piece_moved), piece_replaced(piece_replaced)
     {}
 
+    /*
+     * Returns the move in a readable format with chess coordinates
+    */
     string as_string() {
         return cols[move_from.x] + to_string(move_from.y + 1) + " " + cols[move_to.x] + to_string(move_to.y + 1);
     }

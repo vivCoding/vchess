@@ -101,25 +101,6 @@ private:
         move_history.push_back(to_store);
     }
 
-    /*
-     * Returns all possible (valid) moves for a specific color
-    */
-    vector<Move> get_all_valid_moves() { return get_all_valid_moves(turn); }
-    vector<Move> get_all_valid_moves(Color color) {
-        vector<Move> possible_moves;
-        vector<Piece*> pieces = board->get_pieces(color);
-        for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
-            Piece* p = *pa;
-            vector<Move> valid_moves = p->get_valid_moves(board);
-            for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-                if (!will_check(*m, color)) {
-                    possible_moves.push_back(*m);
-                }
-            }
-        }
-        return possible_moves;
-    }
-
 #pragma endregion CHESS_ENGINE_PRIVATE
 
 #pragma region CHESS_ENGINE_PUBLIC
@@ -142,10 +123,28 @@ public:
             !will_check(m, turn)
         ) {
             make_valid_move(m);
-            next_turn();
             return true;
         }
         return false;
+    }
+
+    /*
+     * Returns all possible (valid) moves for a specific color
+    */
+    vector<Move> get_all_valid_moves() { return get_all_valid_moves(turn); }
+    vector<Move> get_all_valid_moves(Color color) {
+        vector<Move> possible_moves;
+        vector<Piece*> pieces = board->get_pieces(color);
+        for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
+            Piece* p = *pa;
+            vector<Move> valid_moves = p->get_valid_moves(board);
+            for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
+                if (!will_check(*m, color)) {
+                    possible_moves.push_back(*m);
+                }
+            }
+        }
+        return possible_moves;
     }
 
     /*
@@ -209,6 +208,7 @@ public:
     }
 
     #pragma region MOVE_GENERATION
+
     /*
      * Randomnly generates the next (valid) move for the given color (or current turn color if none is given)
     */
@@ -223,11 +223,13 @@ public:
      * Utilizes the chess engine level. If level is low, the function takes less time to complete, but may result in worse moves,
      * while higher levels take more time to calculate and may result in better moves
      * 
-     * This function implements negamax with alpha-beta pruning
+     * This function implements negamax with alpha-beta pruning. Note that one should check if in checkmate before generating move, as
+     * the function will result in error if it's already in checkmate
     */
     Move generate_move() { return generate_move(turn); }
-    Move generate_move(Color color) {
-        if (level == 0) return generate_random_move(color);
+    Move generate_move(Color color) { return generate_move(color, false); }
+    Move generate_move(Color color, bool show_moves_output) {
+        if (level <= 0) return generate_random_move(color);
         stack<PossibleMove*> pm_stack;
         vector<PossibleMove> best_moves;
         int best_score = INT32_MIN, worst_score = INT32_MAX;
@@ -249,11 +251,11 @@ public:
             pm_stack.push(*pm);
         }
         int count = 0;
-        cout << "moves considered: " << count;
+        if (show_moves_output) cout << "moves considered: " << count;
         while (!pm_stack.empty()) {
             PossibleMove *pm = pm_stack.top();
             Move move = pm->move;
-            cout << '\r' << "moves considered: " << count;
+            if (show_moves_output) cout << '\r' << "moves considered: " << count;
             if (pm->visited) {
                 pm_stack.pop();
                 undo_move();
@@ -358,10 +360,12 @@ public:
             }
         }
         PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
-        cout << endl;
-        // cout << "best score: " << best_score << endl;
-        // cout << "worse score: " << worst_score << endl;
-        // cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
+        if (show_moves_output) {
+            cout << endl;
+            // cout << "best score: " << best_score << endl;
+            // cout << "worse score: " << worst_score << endl;
+            // cout << "predicted move: " << best_move.predicted_move.as_string() << endl;
+        }
         return best_move.root;
     }
 
@@ -443,7 +447,8 @@ public:
     int move_history_size() { return move_history.size(); }
 
     /*
-     * Resets chess game and board state 
+     * Resets chess game and board state.
+     * Sets the board pieces to starting position and the current turn to WHITE
     */
     void reset_game() { reset_game(level); }
     void reset_game(int level) {
@@ -464,17 +469,19 @@ public:
     Color get_turn() { return turn; }
     // Get the enemy's color
     Color get_other_color() { return turn == WHITE ? BLACK : WHITE; }
-    Color get_other_color(Color color) { return color == WHITE ? BLACK : WHITE; }
+    static Color get_other_color(Color color) { return color == WHITE ? BLACK : WHITE; }
 
     // Returns current chess engine level
     int get_level() { return level; }
 
     /*
-     * Prints board state and the current turn
+     * Prints board state and the current turn. By default it prints in order row 8 to row 1.
+     * You can also print upside down to print in order row 1 to row 8 instead
     */
-    void print_board() {
+    void print_board() { print_board(false); }
+    void print_board(bool upsidedown) {
         cout << endl;
-        board->print_board();
+        board->print_board(upsidedown);
         if (turn == WHITE) cout << "WHITE TURN";
         else cout << "BLACK TURN";
         if (is_checkmate()) cout << ": CHECKMATE. GAME OVER!";

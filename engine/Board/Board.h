@@ -158,14 +158,17 @@ public:
     /*
      * Conveniently prints the entire board state to the stdout
     */
-    void print_board() {
+    void print_board(bool upsidedown) {
         int gap = 25;
         cout << "   ";
         for (int x = 0; x < gap; x++) {
             cout << "-";
         }
         cout << endl;
-        for (int y = 7; y >= 0; y--) {
+        int start = upsidedown ? 0 : 7;
+        int end = upsidedown ? 8 : -1;
+        int step = upsidedown ? 1 : -1;
+        for (int y = start; y != end; y += step) {
             cout << y + 1 << " | ";
             for (int x = 0; x < 8; x++) {
                 if (board[x][y] != NULL) {
