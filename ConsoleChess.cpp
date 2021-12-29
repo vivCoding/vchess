@@ -72,6 +72,7 @@ int main() {
                     cout << "size: " << chess_engine.move_history_size() << endl;
                 } else {
                     cout << "No moves to undo!" << endl;
+                    break;
                 }
             }
             show_board = true;
