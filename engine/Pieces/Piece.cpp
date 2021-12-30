@@ -1,6 +1,18 @@
 #include "../Board/Board.h"
 #include "Piece.h"
 
+void Piece::generate_id() {
+    string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    piece_id = "";
+    std::uniform_int_distribution<int> uni(0, chars.size() - 1);
+    int id_length = 8;
+    for (int i = 0; i < id_length; i++) {
+        piece_id += chars[uni(rng)];
+    }
+}
+
 bool Piece::is_valid_move(Vector next_position, Board* board) {
     if (board->within_boundaries(next_position)) {
         for (int i = 0; i < this->num_moves; i++) {

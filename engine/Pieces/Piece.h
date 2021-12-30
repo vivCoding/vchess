@@ -2,18 +2,15 @@
 #define PIECE_H
 
 #include "../Util/Vector.h"
+#include "../Util/Colors.h"
 #include "../Util/Move.h"
-#include "../Board/Colors.h"
-#include "../Board/PieceTypes.h"
+#include "PieceTypes.h"
 #include <random>
 #include <vector>
 using std::vector;
-#include <iostream>
-using namespace std;
 
-// forward declare, avoid circular dependencies
+class Move;
 class Board;
-
 /*
  * Class that represents the basic chess piece, with functions responsible for upholding the rules for each chess piece (e.g. get valid piece moves)
  * The base chess piece moves one space at a time (e.g. Knight, King)
@@ -30,17 +27,7 @@ protected:
     int *square_table;
     int *end_square_table;
 
-    void generate_id() {
-        string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-        std::random_device rd;
-        std::mt19937 rng(rd());
-        piece_id = "";
-        std::uniform_int_distribution<int> uni(0, chars.size() - 1);
-        int id_length = 8;
-        for (int i = 0; i < id_length; i++) {
-            piece_id += chars[uni(rng)];
-        }
-    }
+    void generate_id();
 
 public:
     Color color;

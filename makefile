@@ -4,7 +4,7 @@ OUTPUT_DIR = _bin
 
 chess:
 	@mkdir -p $(OUTPUT_DIR)
-	@$(CC) ConsoleChess.cpp engine/*/*.cpp $(CFLAGS) -o $(OUTPUT_DIR)/chess
+	@$(CC) ConsoleChess.cpp engine/*.cpp engine/*/*.cpp $(CFLAGS) -o $(OUTPUT_DIR)/chess
 
 clean:
 	rm -rf $(OUTPUT_DIR)

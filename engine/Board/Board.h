@@ -4,7 +4,7 @@
 #define BOARD_SIZE 8
 
 #include "../Util/Vector.h"
-#include "Colors.h"
+#include "../Util/Colors.h"
 #include "../Pieces/Piece.h"
 #include "../Pieces/Pawn.h"
 #include "../Pieces/Rook.h"
@@ -13,9 +13,9 @@
 #include "../Pieces/King.h"
 #include "../Pieces/Queen.h"
 
-#include <iostream>
 #include <unordered_map>
-using namespace std;
+using std::unordered_map;
+using std::pair;
 
 /*
  * Class that keeps track of a chessboard state
@@ -153,41 +153,6 @@ public:
     bool within_boundaries(Vector v) { return within_boundaries(v.x, v.y); }
     bool within_boundaries(int x, int y) {
         return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
-    }
-
-    /*
-     * Conveniently prints the entire board state to the stdout
-    */
-    void print_board(bool upsidedown) {
-        int gap = 25;
-        cout << "   ";
-        for (int x = 0; x < gap; x++) {
-            cout << "-";
-        }
-        cout << endl;
-        int start = upsidedown ? 0 : 7;
-        int end = upsidedown ? 8 : -1;
-        int step = upsidedown ? 1 : -1;
-        for (int y = start; y != end; y += step) {
-            cout << y + 1 << " | ";
-            for (int x = 0; x < 8; x++) {
-                if (board[x][y] != NULL) {
-                    cout << ((char) board[x][y]->type);
-                    if (board[x][y]->color == WHITE) {
-                        cout << 'w';
-                    } else cout << 'b';
-                } else cout << ". ";
-                cout << " ";
-            }
-            cout << "|";
-            cout << endl;
-        }
-        cout << "   ";
-        for (int x = 0; x < gap; x++) {
-            cout << "-";
-        }
-        cout << endl;
-        cout << "    a  b  c  d  e  f  g  h" << endl;
     }
 
     ~Board() {

@@ -4,6 +4,15 @@
 #include "Vector.h"
 #include "../Pieces/Piece.h"
 
+/*
+ * Constants for move types
+*/
+enum MoveType {
+    MOVE,
+    CAPTURE,
+    CASTLE
+};
+
 class Piece;
 /*
  * Represents a chess move
