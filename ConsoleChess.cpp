@@ -1,5 +1,6 @@
 /*
  * A simple console program to demonstrate the capabilities of the chess engine
+ * To compile, follow the README.md instructions, using ConsoleChess.cpp as the main file
 */
 
 #include "engine/Game.h"

@@ -265,18 +265,19 @@ Below is a very basic implementation of the chess engine. A simple but more deve
 using namespace std;
 
 int main() {
-    // initialize a chess engine with difficulty level 4
-    ChessEngine chess_engine(4);
+    // initialize a chess game and chess engine with difficulty level 4
+    ChessGame game;
+    ChessEngine engine(4);
     // games always start with WHITE
     // move white pawn from e2 to e4
-    chess_engine.move_piece(4, 1, 4, 3);
+    game.move_piece(4, 1, 4, 3);
     // indicate the chess engine to change turn color
     // in this case, it will change to BLACK
-    chess_engine.next_turn();
+    game.next_turn();
     // generate best move for color BLACK
-    Move m = chess_engine.generate_move();
-    chess_engine.next_turn();
-    chess_engine.print_board();
+    Move black_move = engine.generate_move(game.get_turn());
+    game.move_piece(black_move);
+    game.next_turn();
     return 0;
 }
 ```
