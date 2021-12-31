@@ -20,13 +20,12 @@ Move::Move(int fx, int fy, int tx, int ty, Piece *piece_moved, Piece *piece_repl
     , type(type), first_move(piece_moved == NULL ? false : !piece_moved->has_moved) {}
 
 string Move::as_string() {
-    // if (type == CASTLE) return "0-0";
-    // else if (type == QUEENSIDE_CASTLE) return "0-0-0";
-    // string s = "";
-    // if (piece_moved->type != PAWN) s += (char) piece_moved->type;
-    // s += cols[move_from.x] + to_string(move_from.y + 1);
-    // s += type == CAPTURE ? "x" : "-";
-    // s += cols[move_to.x] + to_string(move_to.y + 1);
-    // return s;
-    return cols[move_from.x] + to_string(move_from.y + 1) + " " + cols[move_to.x] + to_string(move_to.y + 1);
+    if (type == CASTLE) return "0-0";
+    else if (type == QUEENSIDE_CASTLE) return "0-0-0";
+    string s = "";
+    if (piece_moved->type != PAWN) s += (char) piece_moved->type;
+    s += cols[move_from.x] + to_string(move_from.y + 1);
+    s += type == CAPTURE ? "x" : "-";
+    s += cols[move_to.x] + to_string(move_to.y + 1);
+    return s;
 }

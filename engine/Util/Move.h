@@ -10,8 +10,6 @@
 enum MoveType {
     MOVE,
     CAPTURE,
-    CHECK,
-    CHECKMATE,
     CASTLE,
     QUEENSIDE_CASTLE
 };

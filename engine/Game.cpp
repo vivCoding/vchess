@@ -120,8 +120,12 @@ bool ChessGame::move_piece(Move m) {
     if (is_valid_move(m)) {
         // correctly update move type
         if (m.piece_replaced != NULL) m.type = CAPTURE;
-        else if (m.piece_moved->type == KING && m.move_from.x == 4 && (m.move_to.x == 6 || m.move_to.x == 2)) {
-            m.type = CASTLE;
+        else if (m.piece_moved->type == KING && m.move_from.x == 4) {
+            if (m.move_to.x == 6) {
+                m.type = CASTLE;
+            } else if (m.move_to.x == 2) {
+                m.type = QUEENSIDE_CASTLE;
+            }
         }
         move_valid(m);
         return true;
@@ -132,7 +136,7 @@ bool ChessGame::move_piece(Move m) {
 void ChessGame::move_valid(Move m) {
     board->replace_piece(m.move_to, m.piece_moved);
     board->clear_piece(m.move_from);
-    if (m.type == CASTLE) {
+    if (m.type == CASTLE || m.type == QUEENSIDE_CASTLE) {
         Vector rook_pos = Vector(m.move_to.x == 6 ? 7 : 0, m.move_from.y);
         Piece* rook = board->get_piece(rook_pos);
         board->replace_piece(rook_pos.x == 7 ? 5 : 3, rook_pos.y, rook);
@@ -210,11 +214,11 @@ bool ChessGame::is_valid_move(Move m, Color color) {
             // castling
             int row = color == WHITE ? 0 : 7;
             int next_x = next_position.x;
-            if (!is_check(color) && !m.piece_moved->has_moved && (next_x == 6 || next_x == 2)) {
+            if (!m.piece_moved->has_moved && (next_x == 6 || next_x == 2)) {
                 int rook_x = next_x == 6 ? 7 : 0;
                 Piece* rook = board->get_piece(rook_x, row);
                 // if it hasn't moved, then it's guaranteed to be a rook
-                if (rook != NULL && !rook->has_moved) {
+                if (rook != NULL && !rook->has_moved && !is_check(color)) {
                     int step = rook_x == 7 ? 1 : -1;
                     // make sure there are no pieces between and no spaces are interfered with an enemy piece
                     for (int i = position.x + step; i != rook_x; i += step) {
@@ -309,11 +313,11 @@ vector<Move> ChessGame::get_valid_moves(int x, int y) {
             }
 
             // castling
-            if (!piece->has_moved && !is_check(color)) {
+            if (!piece->has_moved) {
                 int row = color == WHITE ? 0 : 7;
                 for (int x = 0; x <= 7; x += 7) {
                     Piece* rook = board->get_piece(x, row);
-                    if (rook != NULL && !rook->has_moved) {
+                    if (rook != NULL && !rook->has_moved && !is_check(color)) {
                         bool bad = false;
                         int step = x == 7 ? 1 : -1;
                         for (int i = position.x + step; i != x; i += step) {
@@ -326,7 +330,7 @@ vector<Move> ChessGame::get_valid_moves(int x, int y) {
                             }
                         }
                         if (!bad) {
-                            valid_moves.push_back(Move(position, Vector(x == 0 ? 2 : 6, row), piece, NULL, CASTLE));
+                            valid_moves.push_back(Move(position, Vector(x == 0 ? 2 : 6, row), piece, NULL, x == 0 ? QUEENSIDE_CASTLE : CASTLE));
                         }
                     }
                 }
@@ -408,7 +412,7 @@ void ChessGame::undo_move() {
     Move* m = move_history.back();
     board->replace_piece(m->move_to, m->piece_replaced);
     board->replace_piece(m->move_from, m->piece_moved);
-    if (m->type == CASTLE) {
+    if (m->type == CASTLE || m->type == QUEENSIDE_CASTLE) {
         Vector rook_pos = Vector(m->move_to.x == 6 ? 5 : 3, m->move_from.y);
         Piece* rook = board->get_piece(rook_pos);
         board->replace_piece(rook_pos.x == 5 ? 7 : 0, rook_pos.y, rook);

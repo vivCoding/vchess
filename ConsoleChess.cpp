@@ -12,7 +12,7 @@ void print_board(ChessGame* game, bool upsidedown);
 void print_help_menu();
 
 int main() {
-    int level = 1;
+    int level = 3;
     Color player_color = WHITE;
     Color engine_color = BLACK;
     ChessGame game;
@@ -177,7 +177,7 @@ void print_help_menu() {
     cout << "\tExample: b1 c3 (move piece at b1 to c3)\n";
     cout << "SETTINGS:\n";
     cout << "\tSettings are applied upon game reset\n";
-    cout << "\t- \"level <n>\" to set the chess_engine engine level (0 inclusive). Default is 4\n";
+    cout << "\t- \"level <n>\" to set the chess_engine engine level (0 inclusive). Default is 3\n";
     cout << "\t- \"color [w, b]\" to set the player starting color (either w or b). Default is w\n";
     cout << "\t- \"settings\" to show current game settings\n";
 }

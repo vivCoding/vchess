@@ -7,7 +7,17 @@ Designed to be paired with a GUI, and act as a backend for chess programs.
 - [How to Use](#how-to-use)
     - [Initialization and Resetting](#Initialization-and-Resetting)
     - [Game State and Moving Pieces](#Game-State-and-Moving-Pieces)
-    - [Board State and Piece State](#Board-State-and-Piece-State)
+        - [Player Turns](#Player-Turns)
+        - [Moving Pieces](#Moving-Pieces)
+        - [Game State and Valid Moves](#Game-State-and-Valid-Moves)
+        - [Generating Moves](#Generating-Moves)
+        - [Move History and Undo](#Move-History-and-Undo)
+    - [Board State and Pieces](#Board-State-and-Pieces)
+        - [Getting Pieces](#Getting-Pieces)
+        - [Getting Piece Information](#Getting-Piece-Information)
+    - [Utility Classes](#Utility-Classes)
+        - [Vector](#Vector)
+        - [Move](#Move)
 - [Basic Example](#Basic-Example)
 - [Known Issues and TODOs](#Known-Issues-and-TODOs)
 - [Contributing](#Contributing)
@@ -51,14 +61,15 @@ engine.reset_game(4);
 
 ### Game State and Moving Pieces
 
-#### Color/turn to play:
-Colors are represented by enums:
+#### Player Turns
+Turns are represented by colors, whcih are represented by enums:
 ```cpp
 enum Color {
     WHITE = 'w',
     BLACK = 'b',
 };
 ```
+To get turn information about your chess game:
 ```cpp
 // returns current turn color
 game.get_turn();
@@ -73,12 +84,11 @@ There is also a convenient function to get the alternative color as well:
 get_other_color(WHITE); // returns BLACK
 ```
 
-#### Moving Pieces:
+#### Moving Pieces
 ```cpp
 // moving a piece located on (x, y) to (x2, y2)
 bool moved_success = game.move_piece(x, y, x2, y2);
-// alternatively, you can use the custom Vector class (not to be confused with std::vector)
-// the Vector class conveniently stores x and y values
+// alternatively, you can use the custom Vector class
 bool moved_success = game.move_piece(Vector(x, y), Vector(x2, y2));
 
 // move_piece returns false if moving that piece goes against chess rules
@@ -86,7 +96,9 @@ if (!moved_success) {
     std::cout << "invalid move!";
 }
 ```
-#### Basic Chess Game State:
+See [Utility Classes](#Utility-Classes) for info about the `Vector` class
+
+#### Game State and Valid Moves
 ```cpp
 // checks if the current turn is in check
 bool in_check = game.is_check()
@@ -101,18 +113,130 @@ bool white_stalemate = game.is_stalemate(WHITE);
 bool in_checkmate = chess_engine.is_checkmate();
 bool white_checkmate = chess_engine.is_checkmate(WHITE);
 ```
+```cpp
+// getting legal (valid) moves for a piece at <x, y>
+// i.e. these moves take into account of checks/mates
+vector<Move> valid_moves = get_valid_moves(x, y);
+vector<Move> valid_moves = get_valid_moves(Vector(x, y));
 
-#### Generating Moves:
+// getting ALL legal moves for the current player's turn (or specified color)
+vector<Move> player_valid_moves = get_all_valid_moves();
+vector<Move> white_valid_moves = get_all_valid_moves(WHITE);
+```
+
+See [Utility Classes](#Utility-Classes) for usage of the `Move` class.
+
+
+#### Generating Moves
 ```cpp
 // generate the best calculated move for current turn
 // based on difficulty level specified when engine was intialized or reset
 Move move = engine.generate_move();
 // alternatively, you can generate move for a specific color
 Move black_move = engine.generate_move(BLACK);
+// you can also retrieve the number of moves the engine considered during its last move generation
+engine.get_moves_considered();
 ```
-#### Getting Move Information:
+See [Utility Classes](#Utility-Classes) for usage of the `Move` class.
+
+#### Move History and Undo
 ```cpp
-Move move = chess_engine.generate_move();
+// viewing total moves made
+int total_moves_made = game.move_history_size();
+// to view the most recent move made, use peek_history_back
+Move* most_recent_move = game.peek_history_back();
+// you can also traverse through the move history, where the 0th index is the oldest move
+Move* oldest_move = game.peek_history(0);
+
+// undo a move made
+game.undo_move();
+```
+
+### Board State and Pieces
+#### Getting Pieces
+```c++
+// getting all pieces from specific color
+vector<Piece*> white_pieces = chess_engine.board->get_pieces(WHITE);
+vector<Piece*> black_pieces = chess_engine.board->get_pieces(BLACK);
+
+// getting specific pieces with coordinates (vectors)
+// the board is 8x8, with indices from 0-7
+// this gets the white queen piece (assuming it start from starting position)
+Piece* p = chess_engine.board->get_piece(3, 0);
+Piece* p = chess_engine.board->get_piece(Vector(3, 0));
+```
+
+#### Getting Piece Information
+```cpp
+Piece* p = chess_engine.board->get_piece(3, 0);
+p->type; // QUEEN
+p->color; // WHITE
+p->get_material_value(); // 90
+p->position; // Vector(3, 0)
+
+// Returns the piece moveset (how a piece can move)
+std::vector<Vector> moveset = p->get_moveset();
+```
+
+## Utility Classes
+
+### Vector
+
+This is not to be confused with `std::vector`.
+
+`Vector` is a custom class used to conveniently store xy positions and movements.
+```cpp
+// default initializes to x = 0 and y = 0
+Vector zero_vector = Vector();
+// initializes to x = 2 and y = 8
+Vector v = Vector(2, 8);
+
+// set vector x to 5 and y = 3
+v.set(5, 3);
+v.set(Vector(5, 3));
+
+// vector arithmetic. These do not modify the vectors. Instead, they return a new one
+v.add(Vector(1, 2)); // returns Vector(6, 5)
+v.subtract(Vector(4, 1)); // returns Vector(2, 4)
+v.scale(2); // return Vector(4, 8)
+
+// compare two vectors to see if they have same x and y values
+Vector v2 = Vector(4, 8);
+v.equal_to(v2); // true
+v.equal_to(Vector(1, 0)) // false
+
+// returns the Vector in a readable format
+v.as_string() // returns "(4, 8)"
+```
+
+### Move
+`Move` is a custom class to represent one move made by a player. It is what `engine.generate_move()` returns, and what the `game.move_history` stores.
+
+A `Move` stores:
+- What piece moved
+- What piece was replaced/captured (can be `NULL`)
+- Where the piece came from
+- The final destination of the piece
+- The move type
+- Whether the move was the moved piece's first move
+```cpp
+// initialization
+Move move = Move(vector_from, vector_to, Piece* piece_moving, Piece* piece_replaced);
+Move move = Move(vector_from, vector_to, Piece* piece_moving, Piece* piece_replaced, MoveType move_type);
+```
+Moves can have the following types, represented as an enum:
+```cpp
+enum MoveType {
+    MOVE,
+    CAPTURE,
+    CASTLE,
+    QUEENSIDE_CASTLE
+};
+```
+#### Example
+```cpp
+// a common scenario for using Move is thru generating moves with the engine
+Move move = engine.generate_move();
 // what piece is it moving
 Piece* piece_moved = move.piece_moved;
 // where was the piece at the startf the move
@@ -121,69 +245,16 @@ Vector from = move.move_from;
 Vector to = move.move_to;
 // what piece did it replace (capture). Can be NULL
 Piece* piece_replaced = move.piece_replaced;
+// what type of move was this?
+MoveType type = move.type;
+// was it piece_moved's first move?
+bool first_move = move.first_move;
 ```
-
-#### Move History and Undo:
+You can also represent the move as a readable string (in chess long notation):
 ```cpp
-// viewing total moves made
-int total_moves_made = chess_engine.move_history_size();
-// to view the most recent move made, use peek_history_back
-Move* most_recent_move = chess_engine.peek_history_back();
-// you can also traverse through the move history, where the 0th index is the oldest move
-Move* oldest_move = chess_engine.peek_history(0);
-
-// undo a move made
-chess_engine.undo_move()
-```
-
-#### Printing Game
-`Engine.h` provides a handy `print_board()` function to print the chess game to the console.
-```
-chess_engine.print_board();
-Output:
-   -------------------------
-8 | Rb Nb Bb Qb Kb Bb Nb Rb |
-7 | Pb Pb Pb Pb Pb Pb Pb Pb |
-6 | .  .  .  .  .  .  .  .  |
-5 | .  .  .  .  .  .  .  .  |
-4 | .  .  .  .  .  .  .  .  |
-3 | .  .  .  .  .  .  .  .  |
-2 | Pw Pw Pw Pw Pw Pw Pw Pw |
-1 | Rw Nw Bw Qw Kw Bw Nw Rw |
-   -------------------------
-    a  b  c  d  e  f  g  h
-WHITE TURN
-```
-
-### Board State and Piece State
-#### Getting Pieces:
-```c++
-// getting all pieces from specific color
-vector<Piece*> white_pieces = chess_engine.board->get_pieces(WHITE);
-vector<Piece*> black_pieces = chess_engine.board->get_pieces(BLACK);
-
-// getting specific pieces with coordinates (vectors)
-// The board is 8x8, with indices from 0-7
-// getting the white queen piece
-Piece* p = chess_engine.board->get_piece(3, 0);
-// alternatively, you can use the custom Vector class (not to be confused with std::vector)
-// the Vector class conveniently stores x and y values
-Piece* p = chess_engine.board->get_piece(Vector(0, 0));
-```
-#### Getting Piece Information:
-```cpp
-// if we get piece when the board is in its starting position, it will return white rook
-Piece* p = chess_engine.board->get_piece(3, 0);
-p->type; // QUEEN
-p->color; // WHITE
-p->get_value(); // 90
-p->position; // Vector(3, 0)
-
-// checking if a move is valid or not
-// pass in a vector as its next position, as well as the chess engine board
-bool valid_move = p->is_valid_position(Vector(0, 1), chess_engine->board);
-// get all the valid moves for a piece
-std::vector<Move> = p->get_valid_moves(chess_engine->board);
+// returns move as string
+// example value: Ng8-f6 (move knight from g8 to f6)
+move.as_string();
 ```
 
 ## Basic Example
@@ -209,7 +280,7 @@ int main() {
     return 0;
 }
 ```
-Output (may vary on generated move):
+Final board (may vary on generated move):
 ```
    -------------------------
 8 | Rb .  Bb Qb Kb Bb Nb Rb |
@@ -222,14 +293,15 @@ Output (may vary on generated move):
 1 | Rw Nw Bw Qw Kw Bw Nw Rw |
    -------------------------
     a  b  c  d  e  f  g  h
-WHITE TURN
+WHITE TURN TO MOVE
 ```
 
 ## Known Issues and TODOs
-- No castling or pawn promotion yet :(
+- No pawn promotion yet :(
 - Chess move generation and evaluation improvements
     - Searching has been substantially improved with alpha-beta pruning and sorting moves. However, this may be improved with transposition tables and other techniques such as negascout
     - Piece evaluation can be further improved with better piece-squares tables, such as ones that further take into consideration of how close it is to endgame
+- Checks/mates calculation runtime complexities could possibly be reduced
 
 ## Contributing
 
