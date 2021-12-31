@@ -31,8 +31,8 @@ int main() {
             print_board(&game, player_color == BLACK);
         }
         if (game.get_turn() == engine_color && !game.is_checkmate(engine_color)) {
-            Move move = engine.generate_move(engine_color, &game);
-            // Move move = engine.generate_random_move(engine_color, &game);
+            // Move move = engine.generate_move(engine_color, &game);
+            Move move = engine.generate_random_move(engine_color, &game);
             game.move_piece(move);
             cout << "Moves considered: " << engine.get_moves_considered() << endl;
             cout << "BLACK MOVE: " << move.as_string() << endl;
