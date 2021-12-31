@@ -5,7 +5,6 @@
  * Constants for the different chess pieces
 */
 enum PieceType {
-    EMPTY = '.',
     PAWN = 'P',
     KNIGHT = 'N',
     BISHOP = 'B',

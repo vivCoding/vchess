@@ -13,29 +13,19 @@ void Piece::generate_id() {
     }
 }
 
-bool Piece::is_valid_move(Vector next_position, Board* board) {
-    if (board->within_boundaries(next_position)) {
-        for (int i = 0; i < this->num_moves; i++) {
-            Vector v = position.add(moves[i]);
-            Piece* p = board->get_piece(v);
-            if (next_position.equal_to(v) && (p == NULL || p->color != color)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
+Piece::Piece() { generate_id(); }
+Piece::Piece(PieceType type, int value, Color color, Vector starting_pos, vector<Vector> moveset, int* square_table, int* end_square_table)
+    : moveset(moveset)
+    , value(value)
+    , square_table(square_table)
+    , end_square_table(end_square_table)
+    , color(color)
+    , type(type)
+    , position(starting_pos.x, starting_pos.y)
+    , has_moved(false) { generate_id(); }
 
-vector<Move> Piece::get_valid_moves(Board* board) {
-    vector<Move> valid_moves;
-    for (int i = 0; i < this->num_moves; i++) {
-        Vector v = position.add(moves[i]);
-        Piece* p = board->get_piece(v);
-        if (board->within_boundaries(v) && (p == NULL || p->color != color)) {
-            valid_moves.push_back(Move(position, v, this, p));
-        }
-    }
-    return valid_moves;
+vector<Vector> Piece::get_moveset() {
+    return moveset;
 }
 
 int Piece::get_square_table_value() { return get_square_table_value(false); }
@@ -51,4 +41,12 @@ int Piece::get_square_table_value(int x, int y, bool endgame) {
         if (color == WHITE) return square_table[8 * (7 - y) + x];
         else return square_table[8 * y + x];
     }
+}
+
+int Piece::get_material_value() { return value; }
+string Piece::get_id() { return piece_id; }
+
+Piece::~Piece() {
+    delete square_table;
+    delete end_square_table;
 }

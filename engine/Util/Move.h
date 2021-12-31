@@ -10,7 +10,10 @@
 enum MoveType {
     MOVE,
     CAPTURE,
-    CASTLE
+    CHECK,
+    CHECKMATE,
+    CASTLE,
+    QUEENSIDE_CASTLE
 };
 
 class Piece;
@@ -27,23 +30,21 @@ public:
     Vector move_to;
     Piece* piece_moved;
     Piece* piece_replaced;
+    MoveType type;
+    // determines if it's the piece_moved first time moving
+    bool first_move;
 
-    Move() {}
-    Move(Vector move_from, Vector move_to, Piece* piece_moved, Piece* piece_replaced)
-        : move_from(move_from), move_to(move_to)
-        , piece_moved(piece_moved), piece_replaced(piece_replaced)
-    {}
-    Move(int fx, int fy, int tx, int ty, Piece *piece_moved, Piece *piece_replaced)
-        : move_from(Vector(fx, fy)), move_to(tx, ty)
-        , piece_moved(piece_moved), piece_replaced(piece_replaced)
-    {}
+    Move();
+    // Creates a move. Move type is automatically set to CAPTURE if it sees piece_replaced is not NULL
+    Move(Vector move_from, Vector move_to, Piece* piece_moved, Piece* piece_replaced);
+    Move(int fx, int fy, int tx, int ty, Piece *piece_moved, Piece* piece_replaced);
+    Move(Vector move_from, Vector move_to, Piece* piece_moved, Piece* piece_replaced, MoveType type);
+    Move(int fx, int fy, int tx, int ty, Piece* piece_moved, Piece* piece_replaced, MoveType type);
 
     /*
      * Returns the move in a readable format with chess coordinates
     */
-    string as_string() {
-        return cols[move_from.x] + to_string(move_from.y + 1) + " " + cols[move_to.x] + to_string(move_to.y + 1);
-    }
+    string as_string();
 };
 
 #endif

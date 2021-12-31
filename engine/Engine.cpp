@@ -1,5 +1,7 @@
 #include "Game.h"
 #include "Engine.h"
+#include <iostream>
+using namespace std;
 
 #pragma region CHESS_ENGINE_PRIVATE
 
@@ -8,11 +10,12 @@ int ChessEngine::random_number(int n1, int n2) {
     return uni(rng);
 }
 
-ChessEngine::PossibleMove *ChessEngine::create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, PossibleMove *parent) {
-    PossibleMove* pm = new PossibleMove();
-    pm->color = color; pm->root = root; pm->move = move; pm->depth = depth;
-    pm->score = score; pm->best_score = best_score; pm->parent = parent;
-    return pm;
+ChessEngine::PossibleMove* ChessEngine::create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, PossibleMove *parent) {
+    struct PossibleMove pm;
+    pm.color = color; pm.root = root; pm.move = move; pm.depth = depth;
+    pm.score = score; pm.best_score = best_score; pm.parent = parent;
+    PossibleMove* pma = new PossibleMove(pm);
+    return pma;
 }
 
 #pragma endregion CHESS_ENGINE_PRIVATE
@@ -50,9 +53,11 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
         pm_stack.push(*pm);
     }
     moves_considered = 0;
+    cout << "moves considered: " << moves_considered << endl;
     while (!pm_stack.empty()) {
         PossibleMove *pm = pm_stack.top();
         Move move = pm->move;
+        cout << "\r" << "moves considered: " << moves_considered;
         if (pm->visited) {
             pm_stack.pop();
             game->undo_move();
@@ -156,6 +161,7 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
             }
         }
     }
+    cout << endl;
     PossibleMove best_move = best_moves.at(random_number(0, best_moves.size()));
     return best_move.root;
 }
@@ -163,12 +169,12 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
 int ChessEngine::calculate_utility(Move m, ChessGame* game) {
     Piece* moved = m.piece_moved;
     Piece* captured = m.piece_replaced;
-    int old_mobility = moved->get_valid_moves(game->board).size();
+    int old_mobility = game->get_valid_moves(m.move_from).size();
     int old_position_value = moved->get_square_table_value(is_end_game(game));
     // temporary move piece to check mobility and other factors
     game->move_valid(m);
-    int material = captured == NULL ? 0 : captured->get_value();
-    int mobility = moved->get_valid_moves(game->board).size() - old_mobility;
+    int material = captured == NULL ? 0 : captured->get_material_value();
+    int mobility = game->get_valid_moves(m.move_from).size() - old_mobility;
     int center_value = center_distance_scores[8 * m.move_from.y + m.move_from.x] - center_distance_scores[8 * m.move_to.y + m.move_to.x];
     int position_value = moved->get_square_table_value(is_end_game(game)) - old_position_value;
     game->undo_move();
@@ -181,11 +187,11 @@ bool ChessEngine::is_end_game(ChessGame* game) {
     int white_values = 0, black_values = 0;
     for (auto pa = white_pieces.begin(); pa != white_pieces.end(); pa++) {
         Piece* p = *pa;
-        if (p->type != KING) white_values += p->get_value();
+        if (p->type != KING) white_values += p->get_material_value();
     }
     for (auto pa = black_pieces.begin(); pa != black_pieces.end(); pa++) {
         Piece* p = *pa;
-        if (p->type != KING) black_values += p->get_value();
+        if (p->type != KING) black_values += p->get_material_value();
     }
     int count_diff = white_pieces.size() - black_pieces.size();
     return abs(white_values - black_values) >= 10 || abs(count_diff) > 10;

@@ -1,4 +1,4 @@
-# Chess Engine
+# VChess
 A basic C++ chess engine for playing chess games and generating optimal moves.
 
 Designed to be paired with a GUI, and act as a backend for chess programs.
@@ -19,54 +19,67 @@ Designed to be paired with a GUI, and act as a backend for chess programs.
 - Move utility evaluation based on material score, center distance, mobility, and simple piece square tables
 
 ## How to Use
-Include `<path_to_engine>/Engine.h` in your file and create chess engine object. For example:
+There are two main classes:
+- `ChessGame` keeps state of the current game/board, as well as maintain chess rules.
+- `ChessEngine` is used for move generation and evaluation. This class is optional for use if your chess program does not require move generation or evaluation
+
+To use these classes, simply include required header files:
 ```cpp
+// replace "engine" with the path to the engine folder
+#include "engine/Game.h"
 #include "engine/Engine.h"
 ```
+Compile your program with the engine files:
+```bash
+g++ YourFile.cpp <path_to_engine>/*.cpp <path_to_engine>/*/*.cpp
+```
 
-Compile your program with the engine files.
-```
-g++ YourFile.cpp <path_to_engine>/*/*.cpp
-```
 ### Initialization and Resetting
 ```cpp
+// initializes a chess game. Chessboard is already set up, ready for use
+ChessGame game;
 // creates chess engine with chess difficulty level 0
-// board is already set up, ready for use
-ChessEngine chess_engine;
+ChessEngine engine();
 // you can also initialize with a specific difficulty level
-ChessEngine harder_chess_engine(4);
+ChessEngine engine(4);
 
 // resets the board pieces to starting position, sets the turn color to WHITE
-chess_engine.reset_game();
-// resets with a specifc difficulty level
-chess_engine.reset_game(4);
+engine.reset_game();
+// resets with a specific difficulty level
+engine.reset_game(4);
 ```
 
 ### Game State and Moving Pieces
 
 #### Color/turn to play:
-```cpp
-// returns current turn color
-chess_engine.get_turn();
-// change turn color to the next color
-// e.g. change to BLACK if it was turn was WHITE before, and vice versa
-chess_engine.next_turn();
-```
-Note that colors are represented as enums:
+Colors are represented by enums:
 ```cpp
 enum Color {
     WHITE = 'w',
     BLACK = 'b',
 };
 ```
+```cpp
+// returns current turn color
+game.get_turn();
+// change turn color to the next color
+// e.g. change to BLACK if it was turn was WHITE before, and vice versa
+game.next_turn();
+// you can also manually set the color
+game.set_turn(WHITE);
+```
+There is also a convenient function to get the alternative color as well:
+```cpp
+get_other_color(WHITE); // returns BLACK
+```
 
 #### Moving Pieces:
 ```cpp
 // moving a piece located on (x, y) to (x2, y2)
-bool moved_success = chess_engine.move_piece(x, y, x2, y2);
+bool moved_success = game.move_piece(x, y, x2, y2);
 // alternatively, you can use the custom Vector class (not to be confused with std::vector)
 // the Vector class conveniently stores x and y values
-bool moved_success = chess_engine.move_piece(Vector(x, y), Vector(x2, y2));
+bool moved_success = game.move_piece(Vector(x, y), Vector(x2, y2));
 
 // move_piece returns false if moving that piece goes against chess rules
 if (!moved_success) {
@@ -76,26 +89,26 @@ if (!moved_success) {
 #### Basic Chess Game State:
 ```cpp
 // checks if the current turn is in check
-bool in_check = chess_engine.is_check()
+bool in_check = game.is_check()
 // alternatively, you can pass in specified color
-bool white_check = chess_engine.is_check(WHITE);
+bool white_check = game.is_check(WHITE);
 
 // stalemate
-bool in_stale = chess_engine.is_stalemate();
-bool white_stale = chess_engine.is_stalemate(WHITE);
+bool in_stalemate = game.is_stalemate();
+bool white_stalemate = game.is_stalemate(WHITE);
 
 // checkmate
-bool in_mate = chess_engine.is_checkmate();
-bool white_mate = chess_engine.is_checkmate(WHITE);
+bool in_checkmate = chess_engine.is_checkmate();
+bool white_checkmate = chess_engine.is_checkmate(WHITE);
 ```
 
 #### Generating Moves:
 ```cpp
 // generate the best calculated move for current turn
 // based on difficulty level specified when engine was intialized or reset
-Move move = chess_engine.generate_move();
-// alternatively, you can generate move for specific color
-Move black_move = chess_engine.generate_move(BLACK);
+Move move = engine.generate_move();
+// alternatively, you can generate move for a specific color
+Move black_move = engine.generate_move(BLACK);
 ```
 #### Getting Move Information:
 ```cpp

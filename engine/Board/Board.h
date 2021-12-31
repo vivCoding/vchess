@@ -14,6 +14,7 @@
 #include "../Pieces/Queen.h"
 
 #include <unordered_map>
+#include <iostream>
 using std::unordered_map;
 using std::pair;
 
@@ -87,7 +88,8 @@ public:
 
     /*
      * Replaces piece at board position with the given piece
-     * Returns &piece that was replaced, or NULL if no piece exists at given position
+     * Returns pointer to piece that was replaced, or NULL if no piece exists at given position
+     * Note that even if pieces are overrided on board, you do not have to worry about managing memory for them, as the class handles it automatically
     */
     Piece* replace_piece(Vector v, Piece* piece) { return replace_piece(v.x, v.y, piece); }
     Piece* replace_piece(int x, int y, Piece* piece) {
@@ -124,11 +126,22 @@ public:
     /*
      * Clears the board space at given position (i.e. setting it to NULL)
      * Returns the piece that previously occupied the space, or NULL if no such piece existed
+     * Note that even if pieces are cleared on board, you do not have to worry about managing memory for them, as the class handles it automatically
     */
     Piece* clear_piece(Vector v) { return clear_piece(v.x, v.y); }
     Piece* clear_piece(int x, int y) {
         if (!within_boundaries(x, y)) return NULL;
         Piece* cleared = board[x][y];
+        // if (cleared != NULL) {
+        //     string piece_id = cleared->get_id();
+        //     if (cleared->color == WHITE && white_pieces.at(piece_id)->position.equal_to(x, y)) {
+        //         white_pieces.erase(piece_id);
+        //         deleted_pieces.insert(pair<string, Piece*>(cleared->get_id(), cleared));
+        //     } else if (cleared->color == BLACK && black_pieces.at(piece_id)->position.equal_to(x, y)) {
+        //         black_pieces.erase(piece_id);
+        //         deleted_pieces.insert(pair<string, Piece*>(cleared->get_id(), cleared));
+        //     }
+        // }
         board[x][y] = NULL;
         return cleared;
     }

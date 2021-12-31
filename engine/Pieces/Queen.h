@@ -1,16 +1,16 @@
 #ifndef QUEEN_H
 #define QUEEN_H
 
-#include "FastPiece.h"
+#include "Piece.h"
 
 /*
- * Represents a queen chess piece. Derived from FastPiece class
+ * Represents a queen chess piece
 */
-class Queen : public FastPiece {
+class Queen : public Piece {
 public:
-    Queen(Color color, Vector starting_pos) : FastPiece(color, QUEEN, 90, starting_pos) {
-        this->num_moves = 8;
-        this->moves = new Vector[this->num_moves] {
+    Queen(Color color, Vector starting_pos) : Piece(
+        QUEEN, 90, color, starting_pos, 
+        {
             Vector(0, 1),
             Vector(1, 1),
             Vector(1, 0),
@@ -19,8 +19,8 @@ public:
             Vector(-1, -1),
             Vector(-1, 0),
             Vector(-1, 1),
-        };
-        this->square_table = new int[64] {
+        },
+        new int[64] {
             -20,-10,-10, -5, -5,-10,-10,-20,
             -10,  0,  0,  0,  0,  0,  0,-10,
             -10,  0,  5,  5,  5,  5,  0,-10,
@@ -29,9 +29,9 @@ public:
             -10,  5,  5,  5,  5,  5,  0,-10,
             -10,  0,  5,  0,  0,  0,  0,-10,
             -20,-10,-10, -5, -5,-10,-10,-20
-        };
-        this->end_square_table = NULL;
-    }
+        },
+        NULL
+    ) {}
 };
 
 #endif

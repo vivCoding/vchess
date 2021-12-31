@@ -14,6 +14,14 @@ private:
     */
     bool will_check(Move m, Color color);
 
+    /*
+     * Gets all possible moves. These include moves that may result in playing color to have check.
+     * This function is identical to get_all_valid_moves, without the call to will_check().
+     * We just have this function to avoid an infinite call between is_check() and get_valid_moves()
+    */
+    vector<Move> get_moves(Vector v);
+    vector<Move> get_moves(int x, int y);
+    vector<Move> get_moves(Piece* piece);
 public:
     Board* board;
     
@@ -28,8 +36,12 @@ public:
     bool move_piece(Vector from, Vector to);
     bool move_piece(Move m);
 
-    // TODO
+    /*
+     * Checks if the given move is a legal move, i.e. the move is within boundaries, follows correct piece moveset,
+     * and does not result in a check/mate for the color of moving piece. If no color is given, it uses the current turn color
+    */
     bool is_valid_move(Move m);
+    bool is_valid_move(Move m, Color color);
 
     /*
      * Assumes the move passed is valid (to avoid additional function calls/loops), performs move, and adds to move history
@@ -37,7 +49,12 @@ public:
     */
     void move_valid(Move m);
 
-    // TODO
+    /*
+     * Returns all possible (valid) moves for the piece at specified board location. If invalid specified board location, returns empty vector
+    */
+    vector<Move> get_valid_moves(int x, int y);
+    vector<Move> get_valid_moves(Vector v);
+
     /*
      * Returns all possible (valid) moves for the current turn (or specified color)
     */
@@ -89,6 +106,8 @@ public:
     void next_turn();
     // Get the current turn's color
     Color get_turn();
+    // Set the current turn's color
+    void set_turn(Color color);
 
     ~ChessGame();
 };

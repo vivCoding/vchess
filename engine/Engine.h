@@ -6,12 +6,13 @@
 #include <random>
 #include <stack>
 #include <algorithm>
-using std::stack;
-using std::sort;
-using std::random_device;
-using std::mt19937;
-using std::uniform_int_distribution;
-using std::max;
+using namespace std;
+// using std::stack;
+// using std::sort;
+// using std::random_device;
+// using std::mt19937;
+// using std::uniform_int_distribution;
+// using std::max;
 
 class ChessGame;
 /*
@@ -40,7 +41,7 @@ private:
     // Returns random integer from [n1, n2)
     int random_number(int n1, int n2);
 
-    // structure for storing next possible move. Used for move generation
+    // Structure for storing next possible move. Used for move generation
     struct PossibleMove {
         Color color;
         Move root, move, predicted_move;
@@ -49,7 +50,7 @@ private:
         int alpha = INT16_MIN, beta = INT16_MAX;
         PossibleMove* parent;
     };
-    
+
     // Creates a possible move
     PossibleMove* create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, PossibleMove* parent);
 

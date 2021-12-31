@@ -55,11 +55,10 @@ public:
     }
 
     /*
-     * Compares this vector with given vector
+     * Compares this Vector.x and Vector.y with given Vector.x and Vector.y
     */
-    bool equal_to(Vector v) {
-        return x == v.x && y == v.y;
-    }
+    bool equal_to(int x, int y) { return this->x == this->y; }
+    bool equal_to(Vector v) { return x == v.x && y == v.y; }
 
     /*
      * Returns the Vector in a printable string

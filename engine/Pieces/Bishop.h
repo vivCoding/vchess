@@ -1,22 +1,22 @@
 #ifndef BISHOP_H
 #define BISHOP_H
 
-#include "FastPiece.h"
+#include "Piece.h"
 
 /*
- * Represents a bishop chess piece. Derived from FastPiece class
+ * Represents a bishop chess piece
 */
-class Bishop : public FastPiece {
+class Bishop : public Piece {
 public:
-    Bishop(Color color, Vector starting_pos) : FastPiece(color, BISHOP, 30, starting_pos) {
-        this->num_moves = 4;
-        this->moves = new Vector[num_moves] {
+    Bishop(Color color, Vector starting_pos) : Piece(
+        BISHOP, 35, color, starting_pos, 
+        {
             Vector(1, 1),
             Vector(1, -1),
             Vector(-1, -1),
             Vector(-1, 1),
-        };
-        this->square_table = new int[64] {
+        },
+        new int[64] {
             -20,-10,-10,-10,-10,-10,-10,-20,
             -10,  0,  0,  0,  0,  0,  0,-10,
             -10,  0,  5, 10, 10,  5,  0,-10,
@@ -25,9 +25,9 @@ public:
             -10, 10, 10, 10, 10, 10, 10,-10,
             -10,  5,  0,  0,  0,  0,  5,-10,
             -20,-10,-10,-10,-10,-10,-10,-20,  
-        };
-        this->end_square_table = NULL;
-    }
+        },
+        NULL
+    ) {}
 };
 
 #endif
