@@ -6,13 +6,12 @@
 #include <random>
 #include <stack>
 #include <algorithm>
-using namespace std;
-// using std::stack;
-// using std::sort;
-// using std::random_device;
-// using std::mt19937;
-// using std::uniform_int_distribution;
-// using std::max;
+using std::stack;
+using std::sort;
+using std::random_device;
+using std::mt19937;
+using std::uniform_int_distribution;
+using std::max;
 
 class ChessGame;
 /*

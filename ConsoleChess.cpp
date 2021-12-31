@@ -12,7 +12,7 @@ void print_board(ChessGame* game, bool upsidedown);
 void print_help_menu();
 
 int main() {
-    int level = 4;
+    int level = 1;
     Color player_color = WHITE;
     Color engine_color = BLACK;
     ChessGame game;
@@ -31,8 +31,8 @@ int main() {
             print_board(&game, player_color == BLACK);
         }
         if (game.get_turn() == engine_color && !game.is_checkmate(engine_color)) {
-            // Move move = engine.generate_move(engine_color, &game);
-            Move move = engine.generate_random_move(engine_color, &game);
+            Move move = engine.generate_move(engine_color, &game);
+            // Move move = engine.generate_random_move(engine_color, &game);
             game.move_piece(move);
             cout << "Moves considered: " << engine.get_moves_considered() << endl;
             cout << "BLACK MOVE: " << move.as_string() << endl;
@@ -83,7 +83,7 @@ int main() {
             }
             show_board = false;
         } else if (input == "settings") {
-            cout << "- Player color is: " << (char) player_color << "\n - Chess engine level: " << level << endl;
+            cout << "- Player color is: " << (char) player_color << "\n- Chess engine level: " << level << endl;
             show_board = false;
         } else if (input.length() >= 7 && input.substr(0, 6) == "level ") {
             level = stoi(input.substr(6));
@@ -156,6 +156,11 @@ void print_board(ChessGame* game, bool upsidedown) {
     }
     cout << endl;
     cout << "    a  b  c  d  e  f  g  h" << endl;
+    if (game->get_turn() == WHITE) cout << "WHITE TURN";
+    else cout << "BLACK TURN";
+    if (game->is_checkmate()) cout << ": CHECKMATE. GAME OVER!";
+    else if (game->is_check()) cout << ": CHECK!";
+    cout << endl;
 }
 
 void print_help_menu() {

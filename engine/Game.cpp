@@ -86,7 +86,6 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
             }
 
             // castling
-            // TODO: fix
             if (!piece->has_moved) {
                 int row = color == WHITE ? 0 : 7;
                 for (int x = 0; x <= 7; x += 7) {
@@ -94,7 +93,7 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
                     if (rook != NULL && !rook->has_moved) {
                         bool bad = false;
                         int step = x == 7 ? 1 : -1;
-                        for (int i = position.x; i != x; i += step) {
+                        for (int i = position.x + step; i != x; i += step) {
                             Vector v = Vector(i, row);
                             // make sure there are no pieces between and no spaces are interfered with an enemy piece
                             if (board->get_piece(v) != NULL || will_check(Move(position, v, piece, NULL), color)) {
@@ -211,7 +210,7 @@ bool ChessGame::is_valid_move(Move m, Color color) {
             // castling
             int row = color == WHITE ? 0 : 7;
             int next_x = next_position.x;
-            if (!m.piece_moved->has_moved && (next_x == 6 || next_x == 2)) {
+            if (!is_check(color) && !m.piece_moved->has_moved && (next_x == 6 || next_x == 2)) {
                 int rook_x = next_x == 6 ? 7 : 0;
                 Piece* rook = board->get_piece(rook_x, row);
                 // if it hasn't moved, then it's guaranteed to be a rook
@@ -225,8 +224,7 @@ bool ChessGame::is_valid_move(Move m, Color color) {
                     }
                     return true;
                 } else return false;
-            } else
-                return false;
+            } else return false;
         }
     }
     return false;
@@ -300,28 +298,25 @@ vector<Move> ChessGame::get_valid_moves(int x, int y) {
             }
         } else if (type == KING) {
             for (int i = 0; i < moveset_size; i++) {
-                for (int j = 1; j < BOARD_SIZE; j++) {
-                    Vector v = position.add(moveset.at(i).scale(j));
-                    Piece* p = board->get_piece(v);
-                    if (!board->within_boundaries(v) || (p != NULL && p->color == color)) {
-                        break;
-                    } else {
-                        Move m = Move(position, v, piece, p);
-                        if (!will_check(m, color)) valid_moves.push_back(m);
-                        if (p != NULL) break;
+                Vector v = position.add(moveset.at(i));
+                Piece* p = board->get_piece(v);
+                if (board->within_boundaries(v) && (p == NULL || p->color != color)) {
+                    Move m = Move(position, v, piece, p);
+                    if (!will_check(m, color)) {
+                        valid_moves.push_back(m);
                     }
                 }
             }
 
             // castling
-            if (!piece->has_moved) {
+            if (!piece->has_moved && !is_check(color)) {
                 int row = color == WHITE ? 0 : 7;
                 for (int x = 0; x <= 7; x += 7) {
                     Piece* rook = board->get_piece(x, row);
                     if (rook != NULL && !rook->has_moved) {
                         bool bad = false;
                         int step = x == 7 ? 1 : -1;
-                        for (int i = position.x; i != x; i += step) {
+                        for (int i = position.x + step; i != x; i += step) {
                             Vector v = Vector(i, row);
                             Move m = Move(position, v, piece, NULL);
                             // make sure there are no pieces between and no spaces are interfered with an enemy piece
@@ -451,4 +446,8 @@ void ChessGame::set_turn(Color color) { turn = color; }
 
 ChessGame::~ChessGame() {
     delete board;
+    while (!move_history.empty()) {
+        delete move_history.back();
+        move_history.pop_back();
+    }
 }

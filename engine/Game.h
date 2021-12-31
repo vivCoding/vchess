@@ -14,14 +14,6 @@ private:
     */
     bool will_check(Move m, Color color);
 
-    /*
-     * Gets all possible moves. These include moves that may result in playing color to have check.
-     * This function is identical to get_all_valid_moves, without the call to will_check().
-     * We just have this function to avoid an infinite call between is_check() and get_valid_moves()
-    */
-    vector<Move> get_moves(Vector v);
-    vector<Move> get_moves(int x, int y);
-    vector<Move> get_moves(Piece* piece);
 public:
     Board* board;
     
@@ -48,6 +40,15 @@ public:
      * For general use, it is highly recommended to use move_piece instead. Only call this function if you are absolutely sure the move is valid.
     */
     void move_valid(Move m);
+
+    /*
+     * Gets all possible moves. NOTE: These include moves that may result in playing color to have check.
+     * This function is identical to get_all_valid_moves, without the call to will_check().
+     * We just have this function to avoid an infinite call between is_check() and get_valid_moves()
+    */
+    vector<Move> get_moves(Vector v);
+    vector<Move> get_moves(int x, int y);
+    vector<Move> get_moves(Piece* piece);
 
     /*
      * Returns all possible (valid) moves for the piece at specified board location. If invalid specified board location, returns empty vector

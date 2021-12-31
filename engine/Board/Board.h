@@ -14,7 +14,6 @@
 #include "../Pieces/Queen.h"
 
 #include <unordered_map>
-#include <iostream>
 using std::unordered_map;
 using std::pair;
 
@@ -132,16 +131,6 @@ public:
     Piece* clear_piece(int x, int y) {
         if (!within_boundaries(x, y)) return NULL;
         Piece* cleared = board[x][y];
-        // if (cleared != NULL) {
-        //     string piece_id = cleared->get_id();
-        //     if (cleared->color == WHITE && white_pieces.at(piece_id)->position.equal_to(x, y)) {
-        //         white_pieces.erase(piece_id);
-        //         deleted_pieces.insert(pair<string, Piece*>(cleared->get_id(), cleared));
-        //     } else if (cleared->color == BLACK && black_pieces.at(piece_id)->position.equal_to(x, y)) {
-        //         black_pieces.erase(piece_id);
-        //         deleted_pieces.insert(pair<string, Piece*>(cleared->get_id(), cleared));
-        //     }
-        // }
         board[x][y] = NULL;
         return cleared;
     }
