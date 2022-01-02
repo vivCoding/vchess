@@ -3,7 +3,28 @@
 }
 
 body {
-    background-color: black;
+    background-color: rgb(25, 26, 27);
     color: white;
-    padding: 2em;
+    padding: 3em;
+    text-align: center;
+}
+
+a {
+    color: cyan;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+a:hover {
+    opacity: 0.5;
+    transition: 0.2s;
+}
+
+h1 {
+    font-size: 300%;
+}
+
+#main {
+    padding: 1em;
 }
