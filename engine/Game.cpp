@@ -1,8 +1,5 @@
 #include "Game.h"
 
-#include <iostream>
-using namespace std;
-
 bool ChessGame::will_check(Move m, Color color) {
     if (board->within_boundaries(m.move_from) && board->within_boundaries(m.move_to)) {
         move_valid(m);
@@ -94,15 +91,24 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
                         bool bad = false;
                         int step = x == 7 ? 1 : -1;
                         for (int i = position.x + step; i != x; i += step) {
-                            Vector v = Vector(i, row);
-                            // make sure there are no pieces between and no spaces are interfered with an enemy piece
-                            if (board->get_piece(v) != NULL || will_check(Move(position, v, piece, NULL), color)) {
+                            // make sure there are no pieces between
+                            if (board->get_piece(i, row) != NULL) {
                                 bad = true;
                                 break;
                             }
                         }
                         if (!bad) {
-                            moves.push_back(Move(position, Vector(x == 0 ? 2 : 6, row), piece, NULL, CASTLE));
+                            for (int i = position.x + step; i != x; i += step) {
+                                // make sure there are no spaces are interfered with an enemy piece
+                                // do a separate loop because will_check can be expensive
+                                if (will_check(Move(position, Vector(i, row), piece, NULL), color)) {
+                                    bad = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!bad) {
+                            moves.push_back(Move(position, Vector(x == 0 ? 2 : 6, row), piece, NULL, x == 0 ? QUEENSIDE_CASTLE : CASTLE));
                         }
                     }
                 }
@@ -220,11 +226,14 @@ bool ChessGame::is_valid_move(Move m, Color color) {
                 // if it hasn't moved, then it's guaranteed to be a rook
                 if (rook != NULL && !rook->has_moved && !is_check(color)) {
                     int step = rook_x == 7 ? 1 : -1;
-                    // make sure there are no pieces between and no spaces are interfered with an enemy piece
+                    // make sure there are no pieces between
                     for (int i = position.x + step; i != rook_x; i += step) {
-                        if (board->get_piece(i, row) != NULL || will_check(Move(position, Vector(i, row), m.piece_moved, NULL), color)) {
-                            return false;
-                        }
+                        if (board->get_piece(i, row) != NULL) return false;
+                    }
+                    // make sure there are no spaces are interfered with an enemy piece
+                    // in a separate loop because will_check can be expensive
+                    for (int i = position.x + step; i != rook_x; i += step) {
+                        if (will_check(Move(position, Vector(i, row), m.piece_moved, NULL), color)) return false;
                     }
                     return true;
                 } else return false;
@@ -323,10 +332,22 @@ vector<Move> ChessGame::get_valid_moves(int x, int y) {
                         for (int i = position.x + step; i != x; i += step) {
                             Vector v = Vector(i, row);
                             Move m = Move(position, v, piece, NULL);
-                            // make sure there are no pieces between and no spaces are interfered with an enemy piece
+                            // make sure there are no pieces between
                             if (board->get_piece(v) != NULL || will_check(m, color)) {
                                 bad = true;
                                 break;
+                            }
+                        }
+                        if (!bad) {
+                            // now check if there are spaces where enemy pieces interfere
+                            // we do a separate loop because calling will_check is a bit expensive
+                            for (int i = position.x + step; i != x; i+= step) {
+                                Vector v = Vector(i, row);
+                                Move m = Move(position, v, piece, NULL);
+                                if (will_check(m, color)) {
+                                    bad = true;
+                                    break;
+                                }
                             }
                         }
                         if (!bad) {
@@ -357,10 +378,11 @@ bool ChessGame::is_check() { return is_check(turn); }
 bool ChessGame::is_check(Color color) {
     Vector king_position = board->get_king(color)->position;
     vector<Piece*> pieces = board->get_pieces(get_other_color(color));
+    // TODO: maybe consider sorting moves beforehand?
     for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
         vector<Move> valid_moves = get_moves(*pa);
         for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
-            if (m->type == CASTLE) continue;
+            if (m->type == CASTLE || m->type == QUEENSIDE_CASTLE) continue;
             if (m->move_to.equal_to(king_position)) {
                 return true;
             }
@@ -378,6 +400,7 @@ bool ChessGame::is_checkmate(Color color) {
         for (auto pa = pieces.begin(); pa != pieces.end(); pa++) {
             vector<Move> valid_moves = get_moves(*pa);
             for (auto m = valid_moves.begin(); m != valid_moves.end(); m++) {
+                if (m->type == CASTLE || m->type == QUEENSIDE_CASTLE) continue;
                 if (!will_check(*m, color)) {
                     return false;
                 }

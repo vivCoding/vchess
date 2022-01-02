@@ -1,5 +1,5 @@
 #ifndef ENGINE_H
-#define ENGINE_h
+#define ENGINE_H
 
 #include "Game.h"
 #include "Util/Move.h"

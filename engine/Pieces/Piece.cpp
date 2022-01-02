@@ -3,10 +3,10 @@
 
 void Piece::generate_id() {
     string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    std::random_device rd;
-    std::mt19937 rng(rd());
+    random_device rd;
+    mt19937 rng(rd());
+    uniform_int_distribution<int> uni(0, chars.size() - 1);
     piece_id = "";
-    std::uniform_int_distribution<int> uni(0, chars.size() - 1);
     int id_length = 8;
     for (int i = 0; i < id_length; i++) {
         piece_id += chars[uni(rng)];

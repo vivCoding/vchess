@@ -7,11 +7,13 @@
 #include "PieceTypes.h"
 #include <random>
 #include <vector>
-// using std::vector;
-// using std::uniform_int_distribution;
-using namespace std;
+using std::vector;
+using std::uniform_int_distribution;
+using std::random_device;
+using std::mt19937;
+using std::uniform_int_distribution;
 
-class Move;
+    class Move;
 class Board;
 /*
  * Represents a chess piece

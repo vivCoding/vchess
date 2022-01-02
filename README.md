@@ -143,7 +143,7 @@ See [Utility Classes](#Utility-Classes) for usage of the `Move` class.
 ```cpp
 // viewing total moves made
 int total_moves_made = game.move_history_size();
-// to view the most recent move made, use peek_history_back
+// to view the most recent move made, use peek_history_back. If there has been no moves, it'll return NULL
 Move* most_recent_move = game.peek_history_back();
 // you can also traverse through the move history, where the 0th index is the oldest move
 Move* oldest_move = game.peek_history(0);
@@ -302,7 +302,8 @@ WHITE TURN TO MOVE
 - Chess move generation and evaluation improvements
     - Searching has been substantially improved with alpha-beta pruning and sorting moves. However, this may be improved with transposition tables and other techniques such as negascout
     - Piece evaluation can be further improved with better piece-squares tables, such as ones that further take into consideration of how close it is to endgame
-- Checks/mates calculation runtime complexities could possibly be reduced
+- Runtime complexities for calculating checks/mates could possibly be reduced
+    - Sort moves (?)
 
 ## Contributing
 
