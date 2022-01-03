@@ -131,13 +131,6 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
                 vector<PossibleMove*> pms;
                 for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
                     int new_score = pm->score + sign * calculate_utility(*m, game);
-                    // temporary move piece to see if it leads to stalemate/checkmate
-                    game->move_valid(*m);
-                    if (game->is_stalemate(other_color)) new_score -= INT16_MAX / 64;
-                    else if (game->is_stalemate(color)) new_score += INT16_MAX / 64;
-                    else if (game->is_checkmate(color)) new_score -= INT16_MAX / 2;
-                    else if (game->is_checkmate(other_color)) new_score += INT16_MAX / 2;
-                    game->undo_move();
                     pms.push_back(create_possible_move(
                         new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, pm
                     ));
@@ -167,15 +160,25 @@ int ChessEngine::calculate_utility(Move m, ChessGame* game) {
     Piece* captured = m.piece_replaced;
     int old_mobility = game->get_moves(m.piece_replaced).size();
     int old_position_value = moved->get_square_table_value(is_end_game(game));
+    int score = 0;
+    Color other = get_other_color(moved->color);
     // temporary move piece to check mobility and other factors
     game->move_valid(m);
-    int material = captured == NULL ? 0 : captured->get_material_value();
-    // int mobility = game->get_valid_moves(m.move_from).size() - old_mobility;
-    int mobility = game->get_moves(m.piece_replaced).size() - old_mobility;
-    int center_value = center_distance_scores[8 * m.move_from.y + m.move_from.x] - center_distance_scores[8 * m.move_to.y + m.move_to.x];
-    int position_value = moved->get_square_table_value(is_end_game(game)) - old_position_value;
+    // if checkmate or stalemate, set flat value
+    if (game->is_checkmate(other)) {
+        score = INT16_MAX;
+    } else if (game->is_stalemate(other)) {
+        score = 100;
+    } else {
+        int material = captured == NULL ? 0 : captured->get_material_value();
+        int mobility = game->get_moves(m.piece_replaced).size() - old_mobility;
+        int center_value = center_distance_scores[8 * m.move_from.y + m.move_from.x] - center_distance_scores[8 * m.move_to.y + m.move_to.x];
+        int position_value = moved->get_square_table_value(is_end_game(game)) - old_position_value;
+        // score = 6 * material + 2 * center_value + mobility + 2 * position_value;
+        score = 6 * material;
+    }
     game->undo_move();
-    return 6 * material + 2 * center_value + mobility + 1.5 * position_value;
+    return score;
 }
 
 bool ChessEngine::is_end_game(ChessGame* game) {

@@ -4,9 +4,9 @@ CC = g++
 C_OUTPUT_DIR = _bin
 # wasm
 EXPORTED_FUNCTIONS = ["_malloc", "_free"]
-WCFLAGS = -s WASM=1 -O3 -s EXPORTED_FUNCTIONS='$(EXPORTED_FUNCTIONS)'
+WCFLAGS = -s WASM=1 -s EXPORTED_FUNCTIONS='$(EXPORTED_FUNCTIONS)'
 WCC = em++
-W_OUTPUT_DIR = web/wasm
+W_OUTPUT_DIR = docs/wasm
 
 chess:
 	@mkdir -p $(C_OUTPUT_DIR)

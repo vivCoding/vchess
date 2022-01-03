@@ -147,7 +147,7 @@ class ChessGame {
         const totalMoves = Module._get_last_vector_length(this._gameIdAddress)
         let arr = stringArrayFromMemory(address, totalMoves, 6)
         for (let i = 0; i < arr.length; i++) {
-            if (arr[i][2] == "-") {
+            if (arr[i][2] == "-" || arr[i][2] == "x") {
                 arr[i] = arr[i].substr(0, 5)
             }
         }
