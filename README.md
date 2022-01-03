@@ -10,11 +10,13 @@ Designed to be paired with a GUI, and act as a backend for chess programs.
         - [Player Turns](#Player-Turns)
         - [Moving Pieces](#Moving-Pieces)
         - [Game State and Valid Moves](#Game-State-and-Valid-Moves)
-        - [Generating Moves](#Generating-Moves)
         - [Move History and Undo](#Move-History-and-Undo)
     - [Board State and Pieces](#Board-State-and-Pieces)
         - [Getting Pieces](#Getting-Pieces)
         - [Getting Piece Information](#Getting-Piece-Information)
+    - [Engine Usage](#Engine-Usage)
+        - [Engine Level](#Engine-Level)
+        - [Generating Moves](#Generating-Moves)
     - [Utility Classes](#Utility-Classes)
         - [Vector](#Vector)
         - [Move](#Move)
@@ -61,7 +63,7 @@ game.reset_game();
 ### Game State and Moving Pieces
 
 #### Player Turns
-Turns are represented by colors, whcih are represented by enums:
+Turns are represented by colors, which are represented by enums:
 ```cpp
 enum Color {
     WHITE = 'w',
@@ -125,19 +127,6 @@ vector<Move> white_valid_moves = get_all_valid_moves(WHITE);
 
 See [Utility Classes](#Utility-Classes) for usage of the `Move` class.
 
-
-#### Generating Moves
-```cpp
-// generate the best calculated move for current turn
-// based on difficulty level specified when engine was intialized or reset
-Move move = engine.generate_move();
-// alternatively, you can generate move for a specific color
-Move black_move = engine.generate_move(BLACK);
-// you can also retrieve the number of moves the engine considered during its last move generation
-engine.get_moves_considered();
-```
-See [Utility Classes](#Utility-Classes) for usage of the `Move` class.
-
 #### Move History and Undo
 ```cpp
 // viewing total moves made
@@ -177,9 +166,33 @@ p->position; // Vector(3, 0)
 std::vector<Vector> moveset = p->get_moveset();
 ```
 
-## Utility Classes
+### Engine Usage
 
-### Vector
+#### Engine Levels
+```cpp
+// set chess engine level to anything greater/equal to 0
+// Note: higher engine levels may increase move quality, but will result in higher calculations
+// Reasonable levels: 8 or below
+engine.set_level(int new_level);
+// get current chess engine level
+engine.get_level();
+```
+
+#### Generating Moves
+```cpp
+// generate the best calculated move in a chess game (for the game's current turn)
+// based on difficulty level specified when engine was intialized or reset
+Move move = engine.generate_move(&game);
+// alternatively, you can generate move for a specific color
+Move black_move = engine.generate_move(BLACK, &game);
+// you can also retrieve the number of moves the engine considered during its last move generation
+engine.get_moves_considered();
+```
+See [Utility Classes](#Utility-Classes) for usage of the `Move` class.
+
+### Utility Classes
+
+#### Vector
 
 This is not to be confused with `std::vector`.
 
@@ -208,7 +221,7 @@ v.equal_to(Vector(1, 0)) // false
 v.as_string() // returns "(4, 8)"
 ```
 
-### Move
+#### Move
 `Move` is a custom class to represent one move made by a player. It is what `engine.generate_move()` returns, and what the `game.move_history` stores.
 
 A `Move` stores:

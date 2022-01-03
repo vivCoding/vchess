@@ -61,9 +61,11 @@ function main() {
                 pieceValidMoves = game.getValidMoves(pieceSelected.x, pieceSelected.y)
             }
         } else {
-            let found = pieceValidMoves.find(validMove => validMove.x == realPos.x && validMove.y == realPos.y)
-            if (found != undefined) {
-                handleMovePlayerPiece(realPos)
+            if (pieceValidMoves != null) {
+                let found = pieceValidMoves.find(validMove => validMove.x == realPos.x && validMove.y == realPos.y)
+                if (found != undefined) {
+                    handleMovePlayerPiece(realPos)
+                }
             }
             pieceSelected = null
             pieceValidMoves = null
@@ -257,4 +259,9 @@ function main() {
             y: upsidedown ? pos.y : 7 - pos.y
         }
     }
+
+    window.addEventListener("beforeunload", function() {
+        game.end()
+        engine.end()
+    })
 }

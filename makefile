@@ -4,10 +4,9 @@ CC = g++
 C_OUTPUT_DIR = _bin
 # wasm
 EXPORTED_FUNCTIONS = ["_malloc", "_free"]
-EXPORTED_RUNTIME_METHODS = ["allocateUTF8"]
-WCFLAGS = -s WASM=1 -s EXPORTED_FUNCTIONS='$(EXPORTED_FUNCTIONS)' -s EXPORTED_RUNTIME_METHODS='$(EXPORTED_RUNTIME_METHODS)' -s NO_DISABLE_EXCEPTION_CATCHING
+WCFLAGS = -s WASM=1 -O3 -s EXPORTED_FUNCTIONS='$(EXPORTED_FUNCTIONS)'
 WCC = em++
-W_OUTPUT_DIR = web/public/wasm
+W_OUTPUT_DIR = web/wasm
 
 chess:
 	@mkdir -p $(C_OUTPUT_DIR)
@@ -15,13 +14,7 @@ chess:
 	@echo "Final file size:"
 	@du -h $(C_OUTPUT_DIR)/chess
 
-wasm_c:
-	@mkdir -p $(C_OUTPUT_DIR)
-	@$(CC) wasm/Main.cpp engine/*.cpp engine/*/*.cpp $(CCFLAGS) -o $(C_OUTPUT_DIR)/thing
-	@echo "Final file size:"
-	@du -h $(C_OUTPUT_DIR)/thing
-
-wasm: wasm/Main.cpp
+wasm: wasm/*
 	@mkdir -p $(W_OUTPUT_DIR)
 	@$(WCC) wasm/Main.cpp engine/*.cpp engine/*/*.cpp $(WCFLAGS) -o $(W_OUTPUT_DIR)/chess.js
 	@cat wasm/*.js >> $(W_OUTPUT_DIR)/chess.js

@@ -56,6 +56,8 @@ a:hover {
     width: 125px;
     overflow-y: auto;
     background-color: rgb(39, 41, 43);
+    border-radius: 5px;
+    box-shadow: 2px 3px 10px black;
     padding: 1em;
     text-align: left;
 }

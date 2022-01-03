@@ -194,7 +194,7 @@ bool ChessEngine::is_end_game(ChessGame* game) {
     return abs(white_values - black_values) >= 10 || abs(count_diff) > 10;
 }
 
-void ChessEngine::set_level(int new_level) { level = new_level; }
+void ChessEngine::set_level(int new_level) { level = new_level < 0 ? 0 : new_level; }
 int ChessEngine::get_level() { return level; }
 int ChessEngine::get_moves_considered() { return moves_considered; }
 
