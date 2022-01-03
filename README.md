@@ -27,6 +27,7 @@ Designed to be paired with a GUI, and act as a backend for chess programs.
 - Undo move and move history
 - Move generation using negamax with alpha-beta pruning and moves sorting
 - Move utility evaluation based on material score, center distance, mobility, and simple piece square tables
+- Can be used in C++ or JavaScript (with WebAssembly)
 
 ## How to Use
 There are two main classes:
@@ -54,9 +55,7 @@ ChessEngine engine();
 ChessEngine engine(4);
 
 // resets the board pieces to starting position, sets the turn color to WHITE
-engine.reset_game();
-// resets with a specific difficulty level
-engine.reset_game(4);
+game.reset_game();
 ```
 
 ### Game State and Moving Pieces
@@ -303,7 +302,7 @@ WHITE TURN TO MOVE
     - Searching has been substantially improved with alpha-beta pruning and sorting moves. However, this may be improved with transposition tables and other techniques such as negascout
     - Piece evaluation can be further improved with better piece-squares tables, such as ones that further take into consideration of how close it is to endgame
 - Runtime complexities for calculating checks/mates could possibly be reduced
-    - Sort moves (?)
+    - Take last move into account
 
 ## Contributing
 

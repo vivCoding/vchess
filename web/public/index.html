@@ -5,22 +5,54 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>VChess</title>
     <link rel="stylesheet" type="text/css" href="style.css"/>
-	<link rel="shortcut icon" type="image/jpg" href="cat_typing.gif"/>
+	<link rel="shortcut icon" type="image/jpg" href="chessOof/hehe.gif"/>
 </head>
 <body>
-	<h1>VChess</h1>
+	<h1 id="title">VChess</h1>
 	<h3>Chess is fun</h3>
 	<a href="https://github.com/vivCoding/vchess">GitHub</a>
-	<div id = "main">
-		<div id = "gameArea">
+	<div id="main">
+		<div id="gameArea">
 			<canvas id="canvas" width=560 height=560>Canvas ain't supported :(</canvas>
+			<h2 id="gameStatus">WHITE TURN</h2>
 		</div>
-		<div id = "options">
-			<!-- <img src = "chess_oof.gif" height=300 width=450/> -->
-
+		<div id="options">
+			<h2 id="gameHistoryTitle">Game History</h2>
+			<ol id="gameHistory">
+				<li>Ne4-e5</li>
+				<li>e7-e6</li>
+				<li>0-0</li>
+				<li>0-0-0</li>
+				<li>Nice</li>
+			</ol>
+			<div id="buttons">
+				<button id="undo">Undo</button>
+				<button id="reset">Reset</button>
+			</div>
+			<p id="movesConsidered">Moves Considered: 0</p>
+			<div class="dropdownOptions">
+				<label>Engine Level: </label>
+				<select name="engineLevel" id="engineLevel">
+					<option value="0">0</option>
+					<option value="1">1</option>
+					<option value="2">2</option>
+					<option selected value="3">3</option>
+					<option value="4">4</option>
+					<option value="5">5</option>
+				</select>
+			</div>
+			<div class="dropdownOptions">
+				<label>Play as: </label>
+				<select name="playerColor" id="playerColor">
+					<option selected value="w">White</option>
+					<option value="b">Black</option>
+					<option value="r">Random</option>
+				</select>
+			</div>
 		</div>
 	</div>
-	<script type="text/javascript" src="wasm/chess.js"></script>
-	<script type="text/javascript" src="main.js"></script>
+	<img id="chessOof" src = "chessOof/7.gif" height=200 width=350/>
 </body>
+<script type="text/javascript" src="wasm/chess.js"></script>
+<script type="text/javascript" src="main.js"></script>
 </html>

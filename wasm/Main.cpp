@@ -2,22 +2,20 @@
 #include "../engine/Game.h"
 #include "Exports.h"
 
-#include <iostream>
-using namespace std;
-
-// TODO: maybe convert string to char* ?
+// TODO: break it up into different files ffs
 
 static int last_vector_length = 0;
 
-string generate_id() {
+char* generate_id() {
     string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     random_device rd;
     mt19937 rng(rd());
-    uniform_int_distribution<int> uni(0, chars.size() - 1);
-    string id = "";
+    uniform_int_distribution<int> uni(0, chars.length() - 1);
+    char* id = (char*) malloc(sizeof(char) * 9);
     for (int i = 0; i < 8; i++) {
-        id += chars[uni(rng)];
+        id[i] = chars[uni(rng)];
     }
+    id[8] = '\0';
     return id;
 }
 
@@ -39,26 +37,22 @@ int get_last_vector_length() {
 
 #pragma region WASM_CHESS_GAME
 
-static unordered_map<string, ChessGame*> games;
+static unordered_map<char*, ChessGame*> games;
 
 // Returns game id string
-const char* create_chess_game() {
-    string game_id = generate_id();
+char* create_chess_game() {
+    char* game_id = generate_id();
     ChessGame* game = new ChessGame();
-    games.insert(pair<string, ChessGame*>(game_id, game));
-    const char* c = game_id.c_str();
-    return c;
+    games.insert(pair<char*, ChessGame*>(game_id, game));
+    return game_id;
 }
 
-bool is_valid_game(string game_id) {
-    // TODO: figure out why we can't just get a string of length (with null terminating) from wasm mem
-    game_id = game_id.substr(0, 8);
+bool is_valid_game(char* game_id) {
     return games.find(game_id) != games.end();
 }
 
 // Returns char representing color ('w' or 'b'). If specified game doesn't exist, return 0
-char game_get_turn(string game_id) {
-    game_id = game_id.substr(0, 8);
+char game_get_turn(char* game_id) {
     if (is_valid_game(game_id)) {
         return games.at(game_id)->get_turn();
     }
@@ -66,8 +60,7 @@ char game_get_turn(string game_id) {
 }
 
 // Returns true if game exists and success, false if fails
-bool game_next_turn(string game_id) {
-    game_id = game_id.substr(0, 8);
+bool game_next_turn(char* game_id) {
     if (is_valid_game(game_id)) {
         games.at(game_id)->next_turn();
         return true;
@@ -76,8 +69,7 @@ bool game_next_turn(string game_id) {
 }
 
 // Returns true if game exists and success, false if fails
-bool game_set_turn(string game_id, char color) {
-    game_id = game_id.substr(0, 8);
+bool game_set_turn(char* game_id, char color) {
     if (is_valid_game(game_id) && is_valid_color(color)) {
         games.at(game_id)->set_turn(color_from_char(color));
         return true;
@@ -86,8 +78,7 @@ bool game_set_turn(string game_id, char color) {
 }
 
 // Returns 1 if success, 0 if invalid move, -1 if game not found
-bool game_move_piece(string game_id, int x, int y, int x2, int y2) {
-    game_id = game_id.substr(0, 8);
+bool game_move_piece(char* game_id, int x, int y, int x2, int y2) {
     if (is_valid_game(game_id)) {
         return games.at(game_id)->move_piece(x, y, x2, y2);
     }
@@ -95,8 +86,7 @@ bool game_move_piece(string game_id, int x, int y, int x2, int y2) {
 }
 
 // Returns 1 if success, 0 if invalid move, -1 if game not found or invalid color
-bool game_is_check(string game_id, char color) {
-    game_id = game_id.substr(0, 8);
+bool game_is_check(char* game_id, char color) {
     if (is_valid_game(game_id) && is_valid_color(color)) {
         return games.at(game_id)->is_check(color_from_char(color));
     }
@@ -104,8 +94,7 @@ bool game_is_check(string game_id, char color) {
 }
 
 // Returns 1 if success, 0 if invalid move, -1 if game not found or invalid color
-bool game_is_stalemate(string game_id, char color) {
-    game_id = game_id.substr(0, 8);
+bool game_is_stalemate(char* game_id, char color) {
     if (is_valid_game(game_id) && is_valid_color(color)) {
         return games.at(game_id)->is_stalemate(color_from_char(color));
     }
@@ -113,8 +102,7 @@ bool game_is_stalemate(string game_id, char color) {
 }
 
 // Returns 1 if success, 0 if invalid move, -1 if game not found or invalid color
-bool game_is_checkmate(string game_id, char color) {
-    game_id = game_id.substr(0, 8);
+bool game_is_checkmate(char* game_id, char color) {
     if (is_valid_game(game_id) && is_valid_color(color)) {
         return games.at(game_id)->is_checkmate(color_from_char(color));
     }
@@ -123,8 +111,7 @@ bool game_is_checkmate(string game_id, char color) {
 
 // Returns pointer to double array of final destination vectors: [[x, y], [x2, y2], [x3, y3]]
 // If game doesn't exist, return 0
-int** game_get_valid_moves(string game_id, int x, int y) {
-    game_id = game_id.substr(0, 8);
+int** game_get_valid_moves(char* game_id, int x, int y) {
     if (is_valid_game(game_id)) {
         vector<Move> valid_moves = games.at(game_id)->get_valid_moves(x, y);
         int n = valid_moves.size();
@@ -141,15 +128,18 @@ int** game_get_valid_moves(string game_id, int x, int y) {
 }
 
 // Return array of moves in string format. If game doesn't exist return 0
-const char** game_get_move_history(string game_id) {
-    game_id = game_id.substr(0, 8);
+char** game_get_move_history(char* game_id) {
     if (is_valid_game(game_id)) {
         ChessGame* game = games.at(game_id);
         int n = game->move_history_size();
-        const char** arr = (const char**) malloc(sizeof(const char*) * n);
+        char** arr = (char**) malloc(sizeof(char*) * n);
         last_vector_length = n;
         for (int i = 0; i < n; i++) {
-            arr[i] = game->peek_history(i)->as_string().c_str();
+            arr[i] = (char*) malloc(sizeof(char) * 6);
+            string s = game->peek_history(i)->as_string();
+            for (int j = 0; j < s.length(); j++) {
+                arr[i][j] = s[j];
+            }
         }
         return arr;
     }
@@ -157,8 +147,7 @@ const char** game_get_move_history(string game_id) {
 }
 
 // Return last move made in string format. If game doesn't exist return 0
-const char* game_get_last_move(string game_id) {
-    game_id = game_id.substr(0, 8);
+const char* game_get_last_move(char* game_id) {
     if (is_valid_game(game_id)) {
         string last_move = games.at(game_id)->peek_history_back()->as_string();
         const char* c = last_move.c_str();
@@ -168,8 +157,7 @@ const char* game_get_last_move(string game_id) {
 }
 
 // Return true if game exists and successful. false if game doesn't exist
-bool game_undo_move(string game_id) {
-    game_id = game_id.substr(0, 8);
+bool game_undo_move(char* game_id) {
     if (is_valid_game(game_id)) {
         games.at(game_id)->undo_move();
         return true;
@@ -178,8 +166,7 @@ bool game_undo_move(string game_id) {
 }
 
 // Return piece information at (x, y) in array format: [(int) type, (int) color, materialValue, position.x, position.y]
-int* game_get_piece(string game_id, int x, int y) {
-    game_id = game_id.substr(0, 8);
+int* game_get_piece(char* game_id, int x, int y) {
     if (is_valid_game(game_id)) {
         Piece* p = games.at(game_id)->board->get_piece(x, y);
         if (p == NULL) return 0;
@@ -196,8 +183,7 @@ int* game_get_piece(string game_id, int x, int y) {
 
 // Return array of pieces information at (x, y) in array format:
 // [ [(int) type, (int) color, materialValue, position.x, position.y], ... ]
-int** game_get_pieces(string game_id, char color) {
-    game_id = game_id.substr(0, 8);
+int** game_get_pieces(char* game_id, char color) {
     if (is_valid_game(game_id) && is_valid_color(color)) {
         vector<Piece*> pieces = games.at(game_id)->board->get_pieces(color_from_char(color));
         int n = pieces.size();
@@ -218,8 +204,16 @@ int** game_get_pieces(string game_id, char color) {
 }
 
 // Returns true if game exists, false if it doesn't
-bool delete_chess_game(string game_id) {
-    game_id = game_id.substr(0, 8);
+bool game_reset(char* game_id) {
+    if (is_valid_game(game_id)) {
+        games.at(game_id)->reset_game();
+        return true;
+    }
+    return false;
+}
+
+// Returns true if game exists, false if it doesn't
+bool delete_chess_game(char* game_id) {
     if (is_valid_game(game_id)) {
         delete games.at(game_id);
         games.erase(game_id);
@@ -232,25 +226,22 @@ bool delete_chess_game(string game_id) {
 
 #pragma region WASM_CHESS_ENGINE
 
-static unordered_map<string, ChessEngine*> engines;
+static unordered_map<char*, ChessEngine*> engines;
 
 // Returns created engine id
-const char* create_chess_engine(int level = 0) {
-    string engine_id = generate_id();
+char* create_chess_engine(int level = 0) {
+    char* engine_id = generate_id();
     ChessEngine* engine = new ChessEngine(level);
-    engines.insert(pair<string, ChessEngine*>(engine_id, engine));
-    const char* c = engine_id.c_str();
-    return c;
+    engines.insert(pair<char*, ChessEngine*>(engine_id, engine));
+    return engine_id;
 }
 
-bool is_valid_engine(string engine_id) {
-    engine_id = engine_id.substr(0, 8);
+bool is_valid_engine(char* engine_id) {
     return engines.find(engine_id) != engines.end();
 }
 
 // If specified engine exists, return that engine level. If it doesn't return -1
-int engine_get_level(string engine_id) {
-    engine_id = engine_id.substr(0, 8);
+int engine_get_level(char* engine_id) {
     if (is_valid_engine(engine_id)) {
         return engines.at(engine_id)->get_level();
     }
@@ -258,8 +249,7 @@ int engine_get_level(string engine_id) {
 }
 
 // Returns true if engine exists and success, false if engine doesn't exists
-bool engine_set_level(string engine_id, int new_level) {
-    engine_id = engine_id.substr(0, 8);
+bool engine_set_level(char* engine_id, int new_level) {
     if (is_valid_engine(engine_id)) {
         engines.at(engine_id)->set_level(new_level);
         return true;
@@ -268,14 +258,9 @@ bool engine_set_level(string engine_id, int new_level) {
 }
 
 // Returns generated move in array format: [moveFromX, moveFromY, moveToX, moveToY, movesConsidered]
-int* engine_generate_move(char* engine_id, string game_id, char color) {
-    // TODO: figure out why we cant simply do two string parameters
-    string engine_id_s = engine_id;
-    // cout << "engine: " << engine_id_s << ", " << "game: " << game_id << is_valid_game(game_id) << endl;
-    engine_id_s = engine_id_s.substr(0, 8);
-    game_id = game_id.substr(0, 8);
-    if (is_valid_engine(engine_id_s) && is_valid_game(game_id) && is_valid_color(color)) {
-        ChessEngine* engine = engines.at(engine_id_s);
+int* engine_generate_move(char* engine_id, char* game_id, char color) {
+    if (is_valid_engine(engine_id) && is_valid_game(game_id) && is_valid_color(color)) {
+        ChessEngine* engine = engines.at(engine_id);
         Move move = engine->generate_move(color_from_char(color), games.at(game_id));
         int* arr = (int*) malloc(sizeof(int) * 5);
         arr[0] = move.move_from.x;
@@ -285,13 +270,19 @@ int* engine_generate_move(char* engine_id, string game_id, char color) {
         arr[4] = engine->get_moves_considered();
         return arr;
     }
-    cout << "alley oop" << endl;
     return 0;
 }
 
+// Returns -1 if engine doesn't exist
+int engine_get_number_moves(char* engine_id) {
+    if (is_valid_engine(engine_id)) {
+        return engines.at(engine_id)->get_moves_considered();
+    }
+    return -1;
+}
+
 // Returns true if engine exists, false if it doesn't
-bool delete_chess_engine(string engine_id) {
-    engine_id = engine_id.substr(0, 8);
+bool delete_chess_engine(char* engine_id) {
     if (is_valid_engine(engine_id)) {
         delete engines.at(engine_id);
         engines.erase(engine_id);

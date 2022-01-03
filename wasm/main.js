@@ -39,7 +39,6 @@ function stringFromMemory(address, length) {
         let n = HEAP8[address + i]
         if (n != 0) str += String.fromCharCode(n)
     }
-    Module._free(address)
     return str
 }
 
@@ -51,7 +50,7 @@ function stringArrayFromMemory(address, length, length2) {
         let address2 = Module.HEAP32[address + i]
         for (let j = 0; j < length2; j++) {
             const n = Module.HEAP8[address2 + j]
-            if (n != 0) str += String.fromCharCode(n);
+            if (n >= 32) str += String.fromCharCode(n);
         }
         arr.push(str)
         Module._free(address2)
@@ -91,7 +90,7 @@ class ChessGame {
     constructor() {
         const idAddress = Module._create_chess_game()
         this.gameId = stringFromMemory(idAddress, 8)
-        this._gameIdAddress = stringToMemory(this.gameId)
+        this._gameIdAddress = idAddress
     }
 
     getTurn() {
@@ -144,8 +143,14 @@ class ChessGame {
     getMoveHistory() {
         const address = Module._game_get_move_history(this._gameIdAddress)
         if (address == 0) return []
-        const totalMoves = Module._game_get_move_history(this._gameIdAddress)
-        return stringArrayFromMemory(address, totalMoves, 6)
+        const totalMoves = Module._get_last_vector_length(this._gameIdAddress)
+        let arr = stringArrayFromMemory(address, totalMoves, 6)
+        for (let i = 0; i < arr.length; i++) {
+            if (arr[i][2] == "-") {
+                arr[i] = arr[i].substr(0, 5)
+            }
+        }
+        return arr
     }
 
     getLastMove() {
@@ -190,6 +195,10 @@ class ChessGame {
         return pieces
     }
 
+    reset() {
+        return Module._game_reset(this._gameIdAddress)
+    }
+
     end() {
         const success = Module._delete_chess_game(this._gameIdAddress)
         if (success) Module._free(this._gameIdAddress)
@@ -202,7 +211,7 @@ class ChessEngine {
     constructor(level = 0) {
         const idAddress = Module._create_chess_engine(level)
         this.engineId = stringFromMemory(idAddress, 8)
-        this._engineIdAddress = stringToMemory(this.engineId)
+        this._engineIdAddress = idAddress
     }
 
     getLevel() {
@@ -217,7 +226,6 @@ class ChessEngine {
         const address = Module._engine_generate_move(this._engineIdAddress, game._gameIdAddress, color)
         if (address == 0) return null
         const arr = intArrayFromMemory(address, 5)
-        console.log(arr)
         let move = {
             x: arr[0],
             y: arr[1],
@@ -228,9 +236,13 @@ class ChessEngine {
         return move
     }
 
+    getNumberOfMovesConsidered() {
+        return Module._engine_get_number_moves(this._engineIdAddress)
+    }
+
     end() {
         const success = Module._delete_chess_engine(this._engineIdAddress)
-        if (success) Module._Free(this._engineIdAddress)
+        if (success) Module._free(this._engineIdAddress)
         return success
     }
 }

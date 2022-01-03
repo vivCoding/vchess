@@ -25,6 +25,7 @@ ChessEngine::ChessEngine(int level) : level(level), rng(mt19937(rd())) {}
 
 Move ChessEngine::generate_random_move(Color color, ChessGame* game) {
     vector<Move> possible_moves = game->get_all_valid_moves(color);
+    moves_considered = possible_moves.size();
     return possible_moves.at(random_number(0, possible_moves.size()));
 }
 

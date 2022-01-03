@@ -138,8 +138,8 @@ void print_board(ChessGame* game, bool upsidedown) {
     int step = upsidedown ? 1 : -1;
     for (int y = start; y != end; y += step) {
         cout << y + 1 << " | ";
-        for (int x = 0; x < 8; x++) {
-            Piece* p = game->board->get_piece(x, y);
+        for (int x = start; x != end; x += step) {
+            Piece* p = game->board->get_piece(upsidedown ? x : 7 - x, upsidedown ? 7 - y : y);
             if (p != NULL) {
                 cout << ((char) p->type);
                 if (p->color == WHITE) {
@@ -160,6 +160,7 @@ void print_board(ChessGame* game, bool upsidedown) {
     if (game->get_turn() == WHITE) cout << "WHITE TURN";
     else cout << "BLACK TURN";
     if (game->is_checkmate()) cout << ": CHECKMATE. GAME OVER!";
+    else if (game->is_stalemate()) cout << ": CHECKMATE. GAME OVER!";
     else if (game->is_check()) cout << ": CHECK!";
     cout << endl;
 }

@@ -70,15 +70,10 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
             }
         } else if (type == KING) {
             for (int i = 0; i < moveset_size; i++) {
-                for (int j = 1; j < BOARD_SIZE; j++) {
-                    Vector v = position.add(moveset.at(i).scale(j));
-                    Piece* p = board->get_piece(v);
-                    if (!board->within_boundaries(v) || (p != NULL && p->color == color)) {
-                        break;
-                    } else {
-                        moves.push_back(Move(position, v, piece, p));
-                        if (p != NULL) break;
-                    }
+                Vector v = position.add(moveset.at(i));
+                Piece* p = board->get_piece(v);
+                if (board->within_boundaries(v) && (p == NULL || p->color != color)) {
+                    moves.push_back(Move(position, v, piece, p));
                 }
             }
 
