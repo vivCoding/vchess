@@ -2,9 +2,6 @@
 #include "../engine/Game.h"
 #include "Exports.h"
 
-#include <iostream>
-using namespace std;
-
 // TODO: break it up into different files ffs
 
 static int last_vector_length = 0;
@@ -149,11 +146,7 @@ bool game_promote_pawn(char* game_id, int x, int y, char piece_type) {
             case 'Q': type = QUEEN; break;
             default: return false;
         }
-        cout << "got " << x << ", " << y << ", " << (char) type << endl;
-        cout << "piece before " << (char) games.at(game_id)->board->get_piece(x, y)->type << endl;
-        bool s = games.at(game_id)->promote_pawn(x, y, type);
-        cout << "piece now " << (char) games.at(game_id)->board->get_piece(x, y)->type << endl;
-        return s;
+        return games.at(game_id)->promote_pawn(x, y, type);
     }
     return false;
 }

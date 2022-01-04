@@ -85,6 +85,19 @@ console.log(validMoves[0].x)
 console.log(validMoves[0].y)
 ```
 
+### Pawn Promotion
+After moving a piece, you can check if it's available for promotion:
+```js
+// check if a piece at board position (x, y) can be promoted
+const canPromote = game.pawn_promotion_available(x, y);
+```
+Once you confirm that it can be promoted, you can promote it to piece of choice:
+```js
+// promotes pawn at specific location to QUEEN (Q)
+// piece types should only be KNIGHT (K), BISHOP (B), ROOK (R), and QUEEN (Q)
+bool promotion_successful = game.promote_pawn(x, y, "Q");
+```
+
 ###  Move History and Undo
 ```js
 // array of last moves made in string format, ordered from oldest to newest
@@ -110,16 +123,16 @@ const whitePieces = game.getPieces(Colors.WHITE)
 ``` 
 ### Engine Level
 ```js
-// set engine level
-engine.setLevel(3)
 // get engine level
 engine.getLevel()
+// set engine level
+engine.setLevel(3)
 ```
 
 ### Generating Moves
 ```js
 // generate the best calculated move in a chess game (for the game's current turn)
-// based on difficulty level specified when engine was intialized or reset
+// based on difficulty level specified when engine was initialized or set
 const move = engine.generateMove(game)
 // alternatively, you can generate move for a specific color
 const move = engine.generateMove(game, Colors.BLACK)
@@ -130,6 +143,7 @@ move.y // board position.y to move from
 move.x2 // board position.x to move to
 move.y2  // board position.y to move to
 move.movesConsidered // number of moves it considered
+move.promoteTo // if it's a pawn promotion, what piece it should promote to
 
 // you can also separately retrieve the number of moves the engine considered during its last move generation
 console.log(engine.getNumberOfMovesConsidered())
