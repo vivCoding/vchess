@@ -1,7 +1,7 @@
 # VChess
 A basic C++ chess engine for playing chess games and generating optimal moves.
 
-Designed to be paired with a GUI, and act as a backend for chess programs.
+Designed to be paired with a GUI and be a backend for chess programs (like this [one](https://vivcoding.github.io/vchess/)).
 
 - [Features](#features)
 - [How to Use](#how-to-use)
@@ -30,7 +30,7 @@ Designed to be paired with a GUI, and act as a backend for chess programs.
 - Undo move and move history
 - Move generation using negamax with alpha-beta pruning and moves sorting
 - Move utility evaluation based on material score, center distance, mobility, and simple piece square tables
-- Can be used in C++ or JavaScript (with WebAssembly)
+- Can be used in C++ or [JavaScript (with WebAssembly)](https://github.com/vivCoding/vchess/tree/main/wasm)
 
 ## How to Use
 There are two main classes:
