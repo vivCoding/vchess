@@ -217,7 +217,7 @@ int ChessEngine::calculate_utility(Move m, ChessGame* game) {
         int mobility = game->get_moves(m.piece_replaced).size() - old_mobility;
         int center_value = center_distance_scores[8 * m.move_to.y + m.move_to.x] - center_distance_scores[8 * m.move_from.y + m.move_from.x];
         int position_value = moved->get_square_table_value(is_end_game(game)) - old_position_value;
-        score = 6 * material + 2 * center_value + mobility * 2 * position_value;
+        score = 7 * material + center_value + mobility + 1.5 * position_value;
     }
     game->undo_move();
     return score;

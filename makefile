@@ -14,7 +14,7 @@ chess:
 	@echo "Final file size:"
 	@du -h $(C_OUTPUT_DIR)/chess
 
-wasm: wasm/*
+wasm: wasm/* engine/*.cpp engine/*/*.cpp
 	@mkdir -p $(W_OUTPUT_DIR)
 	@$(WCC) wasm/Main.cpp engine/*.cpp engine/*/*.cpp $(WCFLAGS) -o $(W_OUTPUT_DIR)/chess.js
 	@cat wasm/*.js >> $(W_OUTPUT_DIR)/chess.js
