@@ -98,7 +98,7 @@ function main() {
         lastMoved = { x: pieceSelected.x, y: pieceSelected.y, x2: nextPos.x, y2: nextPos.y }
         if (game.pawnPromotionAvailable(nextPos.x, nextPos.y)) {
             let promotionTo = prompt("Enter piece to promote too (N for knight, B for bishop, R for rook, or Q for queen):")
-            while (promotionTo != null && promotionTo != "" && "NBRQ".indexOf(promotionTo) == -1) {
+            while (promotionTo == null && promotionTo != "" && "NBRQ".indexOf(promotionTo) == -1) {
                 alert("Invalid piece!")
                 promotionTo = prompt("Enter piece to promote too (N for knight, B for bishop, R for rook, or Q for queen):")
             }
