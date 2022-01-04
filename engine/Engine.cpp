@@ -138,14 +138,6 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
                 }
                 vector<Move> possible_moves = game->get_all_valid_moves(pm->color);
                 // used later to keep track of how many of the children are still left in stack and potentially remove them
-                pm->children_count = possible_moves.size();
-                // if we have no possible moves, that means we've reached the end of a branch early
-                if (pm->children_count == 0) {
-                    // set the best_score with current sign (for negamax) and set its level to the highest (essentially marking it the end of branch)
-                    pm->best_score = (pm->color == color ? 1 : -1) * pm->score;
-                    pm->depth = level;
-                    continue;
-                }
                 Color new_color = get_other_color(pm->color);
                 int sign = pm->color == color ? 1 : -1;
                 vector<PossibleMove*> pms;
@@ -159,11 +151,20 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
                                 new_color, pm->root, nm, pm->depth + 1, pm->score + sign * calculate_utility(nm, game), INT32_MIN, pm
                             ));
                         }
+                        pm->children_count += 4;
                     } else {
                         pms.push_back(create_possible_move(
                             new_color, pm->root, *m, pm->depth + 1, pm->score + sign * calculate_utility(*m, game), INT32_MIN, pm
                         ));
                     }
+                }
+                pm->children_count = pms.size();
+                // if we have no possible moves, that means we've reached the end of a branch early
+                if (pm->children_count == 0) {
+                    // set the best_score with current sign (for negamax) and set its level to the highest (essentially marking it the end of branch)
+                    pm->best_score = (pm->color == color ? 1 : -1) * pm->score;
+                    pm->depth = level;
+                    continue;
                 }
                 // sorting them for slightly better pruning. Add to stack ascending or descending score based on color
                 // If our color, add them ascending (consider large options first, as we're maximizing).
