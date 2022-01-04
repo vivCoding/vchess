@@ -13,14 +13,17 @@ extern "C" {
     char* create_chess_game();
     EMSCRIPTEN_KEEPALIVE
     bool is_valid_game(char* game_id);
+
     EMSCRIPTEN_KEEPALIVE
     char game_get_turn(char* game_id);
     EMSCRIPTEN_KEEPALIVE
     bool game_next_turn(char* game_id);
     EMSCRIPTEN_KEEPALIVE
     bool game_set_turn(char* game_id, char color);
+
     EMSCRIPTEN_KEEPALIVE
     bool game_move_piece(char* game_id, int x, int y, int x2, int y2);
+
     EMSCRIPTEN_KEEPALIVE
     bool game_is_check(char* game_id, char color);
     EMSCRIPTEN_KEEPALIVE
@@ -29,6 +32,12 @@ extern "C" {
     bool game_is_checkmate(char* game_id, char color);
     EMSCRIPTEN_KEEPALIVE
     int** game_get_valid_moves(char* game_id, int x, int y);
+
+    EMSCRIPTEN_KEEPALIVE
+    bool game_pawn_promotion_available(char* game_id, int x, int y);
+    EMSCRIPTEN_KEEPALIVE
+    bool game_promote_pawn(char* game_id, int x, int y, char piece_type);
+
     EMSCRIPTEN_KEEPALIVE
     char** game_get_move_history(char* game_id);
     EMSCRIPTEN_KEEPALIVE

@@ -12,7 +12,7 @@ void print_board(ChessGame* game, bool upsidedown);
 void print_help_menu();
 
 int main() {
-    int level = 1;
+    int level = 0;
     Color player_color = WHITE;
     Color engine_color = BLACK;
     ChessGame game;

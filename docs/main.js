@@ -96,6 +96,15 @@ function main() {
     function handleMovePlayerPiece(nextPos) {
         game.movePiece(pieceSelected.x, pieceSelected.y, nextPos.x, nextPos.y)
         lastMoved = { x: pieceSelected.x, y: pieceSelected.y, x2: nextPos.x, y2: nextPos.y }
+        if (game.pawnPromotionAvailable(nextPos.x, nextPos.y)) {
+            let promotionTo = prompt("Enter piece to promote too (N for knight, B for bishop, R for rook, or Q for queen):")
+            while (promotionTo != "" && "NBRQ".indexOf(promotionTo) == -1) {
+                alert("Invalid piece!")
+                promotionTo = prompt("Enter piece to promote too (N for knight, B for bishop, R for rook, or Q for queen):")
+            }
+            console.log("promotion status", game.promotePawn(nextPos.x, nextPos.y, promotionTo))
+            console.log(nextPos)
+        }
         game.nextTurn()
         drawBoard()
         updateGameStatus()
@@ -110,6 +119,10 @@ function main() {
                 const move = engine.generateMove(game, game.getTurn())
                 game.movePiece(move.x, move.y, move.x2, move.y2)
                 lastMoved = move
+                if (game.pawnPromotionAvailable(move.x2, move.y2)) {
+                    game.promotePawn(move.x2, move.y2, move.promoteTo)
+                    console.log(move.promoteTo)
+                }
                 game.nextTurn()
                 updateGameStatus()
                 clearInterval(movesInterval)
@@ -228,7 +241,6 @@ function main() {
     }
 
     function drawBoard() {
-        console.log("bruh")
         ctx.beginPath()
         const brown = "rgb(180, 136, 102)"
         const yellow = "rgb(239, 216, 183)"
@@ -255,7 +267,6 @@ function main() {
                             sprite.width, sprite.height
                         )
                     }
-                    console.log(sprites)
                 }
             }
             ctx.fillStyle = "#4a3300"

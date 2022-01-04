@@ -1,5 +1,6 @@
 // TODO: documentation
 
+// TODO: prob should convert to chars
 const Colors = {
     WHITE: 119,
     BLACK: 98
@@ -140,6 +141,14 @@ class ChessGame {
         return moves
     }
 
+    pawnPromotionAvailable(x, y) {
+        return Module._game_pawn_promotion_available(this._gameIdAddress, x, y)
+    }
+
+    promotePawn(x, y, type) {
+        return Module._game_promote_pawn(this._gameIdAddress, x, y, type.charCodeAt(0))
+    }
+
     getMoveHistory() {
         const address = Module._game_get_move_history(this._gameIdAddress)
         if (address == 0) return []
@@ -225,13 +234,14 @@ class ChessEngine {
     generateMove(game, color) {
         const address = Module._engine_generate_move(this._engineIdAddress, game._gameIdAddress, color)
         if (address == 0) return null
-        const arr = intArrayFromMemory(address, 5)
+        const arr = intArrayFromMemory(address, 6)
         let move = {
             x: arr[0],
             y: arr[1],
             x2: arr[2],
             y2: arr[3],
-            movesConsidered: arr[4]
+            movesConsidered: arr[4],
+            promoteTo: String.fromCharCode(arr[5])
         }
         return move
     }

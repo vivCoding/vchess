@@ -10,6 +10,7 @@ Designed to be paired with a GUI, and act as a backend for chess programs.
         - [Player Turns](#Player-Turns)
         - [Moving Pieces](#Moving-Pieces)
         - [Game State and Valid Moves](#Game-State-and-Valid-Moves)
+        - [Pawn Promotion](#Pawn-Promotion)
         - [Move History and Undo](#Move-History-and-Undo)
     - [Board State and Pieces](#Board-State-and-Pieces)
         - [Getting Pieces](#Getting-Pieces)
@@ -140,6 +141,20 @@ Move* oldest_move = game.peek_history(0);
 game.undo_move();
 ```
 
+#### Pawn Promotion
+After moving a piece, you can check if it's available for promotion:
+```cpp
+// check if a piece at board position (x, y) can be promoted
+bool can_promote = game.pawn_promotion_available(x, y);
+bool can_promote = game.pawn_promotion_available(Vector(x, y));
+```
+Once you confirm that it can be promoted, you can promote it to piece of choice:
+```cpp
+// promotes pawn at specific location to QUEEN
+// piece types should only be KNIGHT, BISHOP, ROOK, and QUEEN
+bool promotion_successful = game.promote_pawn(x, y, QUEEN);
+```
+
 ### Board State and Pieces
 #### Getting Pieces
 ```c++
@@ -223,14 +238,6 @@ v.as_string() // returns "(4, 8)"
 
 #### Move
 `Move` is a custom class to represent one move made by a player. It is what `engine.generate_move()` returns, and what the `game.move_history` stores.
-
-A `Move` stores:
-- What piece moved
-- What piece was replaced/captured (can be `NULL`)
-- Where the piece came from
-- The final destination of the piece
-- The move type
-- Whether the move was the moved piece's first move
 ```cpp
 // initialization
 Move move = Move(vector_from, vector_to, Piece* piece_moving, Piece* piece_replaced);
@@ -242,10 +249,11 @@ enum MoveType {
     MOVE,
     CAPTURE,
     CASTLE,
-    QUEENSIDE_CASTLE
+    QUEENSIDE_CASTLE,
+    PAWN_PROMOTION
 };
 ```
-#### Example
+#### Move Fields
 ```cpp
 // a common scenario for using Move is thru generating moves with the engine
 Move move = engine.generate_move();
@@ -257,10 +265,17 @@ Vector from = move.move_from;
 Vector to = move.move_to;
 // what piece did it replace (capture). Can be NULL
 Piece* piece_replaced = move.piece_replaced;
-// what type of move was this?
+// type of move (see enums from above)
 MoveType type = move.type;
 // was it piece_moved's first move?
 bool first_move = move.first_move;
+```
+If the move was a `PAWN_PROMOTION`, you can get additional information:
+```cpp
+// awhat the pawn is promoting to
+PieceType promotion = move.promote_to
+// original pawn (before it was promoted)
+Piece* p = move.old_pawn;
 ```
 You can also represent the move as a readable string (in chess long notation):
 ```cpp
@@ -310,10 +325,12 @@ WHITE TURN TO MOVE
 ```
 
 ## Known Issues and TODOs
-- No pawn promotion yet :(
+- No en passant move yet :(
 - Chess move generation and evaluation improvements
     - Searching has been substantially improved with alpha-beta pruning and sorting moves. However, this may be improved with transposition tables and other techniques such as negascout
-    - Piece evaluation can be further improved with better piece-squares tables, such as ones that further take into consideration of how close it is to endgame
+    - Piece evaluation can be further improved with better piece-squares tables, such as ones that further take into consideration of how close it is to endgame (such as this [one](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function))
+    - Piece formation evaluation could be useful too
+    - Lots of other factors
 - Runtime complexities for calculating checks/mates could possibly be reduced
     - Take last move into account
 

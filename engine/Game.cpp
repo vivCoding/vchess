@@ -431,10 +431,11 @@ bool ChessGame::is_stalemate(Color color) {
     return false;
 }
 
-bool ChessGame::pawn_promotion_available() { return pieces_to_promote.size() > 0; }
 bool ChessGame::pawn_promotion_available(int x, int y) { return pawn_promotion_available(board->get_piece(x, y)->get_id()); }
 bool ChessGame::pawn_promotion_available(Vector v) { return pawn_promotion_available(board->get_piece(v)->get_id()); }
-bool ChessGame::pawn_promotion_available(string piece_id) { return pieces_to_promote.find(piece_id) != pieces_to_promote.end(); }
+bool ChessGame::pawn_promotion_available(string piece_id) {
+    return pieces_to_promote.find(piece_id) != pieces_to_promote.end();
+}
 
 bool ChessGame::promote_pawn(int x, int y, PieceType promo_to) { return promote_pawn(board->get_piece(x, y)->get_id(), promo_to); }
 bool ChessGame::promote_pawn(Vector v, PieceType promo_to) { return promote_pawn(board->get_piece(v)->get_id(), promo_to); }
@@ -477,6 +478,7 @@ void ChessGame::undo_move() {
     }
     if (m->type == PAWN_PROMOTION) {
         board->replace_piece(m->move_from, m->old_pawn);
+        pieces_to_promote.erase(m->old_pawn->get_id());
     }
     m->piece_moved->has_moved = !m->first_move;
     delete m;

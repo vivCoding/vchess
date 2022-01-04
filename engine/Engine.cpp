@@ -47,6 +47,7 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
     vector<PossibleMove*> first_pms;
     for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
         if (m->type == PAWN_PROMOTION) {
+            // consider all types of promotions
             for (PieceType pt : promote_to_pieces) {
                 Move nm = Move(m->move_from, m->move_to, m->piece_moved, m->piece_replaced, m->type);
                 nm.promote_to = pt;
@@ -150,6 +151,7 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
                 vector<PossibleMove*> pms;
                 for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
                     if (m->type == PAWN_PROMOTION) {
+                        // consider all promotion types
                         for (PieceType pt : promote_to_pieces) {
                             Move nm = *m;
                             nm.promote_to = pt;
@@ -195,6 +197,8 @@ int ChessEngine::calculate_utility(Move m, ChessGame* game) {
     game->move_valid(m);
     // also promote pawn if needed
     if (m.type == PAWN_PROMOTION) {
+        // we score the material value for promoting
+        // typically, the queen is the best piece to promote to
         game->promote_pawn(m.move_to, m.promote_to);
         switch (m.promote_to) {
             case KNIGHT: material += 15; break;
@@ -212,8 +216,7 @@ int ChessEngine::calculate_utility(Move m, ChessGame* game) {
         int mobility = game->get_moves(m.piece_replaced).size() - old_mobility;
         int center_value = center_distance_scores[8 * m.move_to.y + m.move_to.x] - center_distance_scores[8 * m.move_from.y + m.move_from.x];
         int position_value = moved->get_square_table_value(is_end_game(game)) - old_position_value;
-        // score = 6 * material + 2 * center_value + mobility * 2 * position_value;
-        score = 6 * material;
+        score = 6 * material + 2 * center_value + mobility * 2 * position_value;
     }
     game->undo_move();
     return score;

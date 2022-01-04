@@ -2,6 +2,9 @@
 #include "../engine/Game.h"
 #include "Exports.h"
 
+#include <iostream>
+using namespace std;
+
 // TODO: break it up into different files ffs
 
 static int last_vector_length = 0;
@@ -125,6 +128,34 @@ int** game_get_valid_moves(char* game_id, int x, int y) {
         return arr;
     }
     return 0;
+}
+
+// Returns bool if game exists, false if it doesn't
+bool game_pawn_promotion_available(char* game_id, int x, int y) {
+    if (is_valid_game(game_id)) {
+        return games.at(game_id)->pawn_promotion_available(x, y);
+    }
+    return false;
+}
+
+// Returns bool if game exists, false if it doesn't
+bool game_promote_pawn(char* game_id, int x, int y, char piece_type) {
+    if (is_valid_game(game_id)) {
+        PieceType type;
+        switch (piece_type) {
+            case 'N': type = KNIGHT; break;
+            case 'B': type = BISHOP; break;
+            case 'R': type = ROOK; break;
+            case 'Q': type = QUEEN; break;
+            default: return false;
+        }
+        cout << "got " << x << ", " << y << ", " << (char) type << endl;
+        cout << "piece before " << (char) games.at(game_id)->board->get_piece(x, y)->type << endl;
+        bool s = games.at(game_id)->promote_pawn(x, y, type);
+        cout << "piece now " << (char) games.at(game_id)->board->get_piece(x, y)->type << endl;
+        return s;
+    }
+    return false;
 }
 
 // Return array of moves in string format. If game doesn't exist return 0
@@ -262,12 +293,13 @@ int* engine_generate_move(char* engine_id, char* game_id, char color) {
     if (is_valid_engine(engine_id) && is_valid_game(game_id) && is_valid_color(color)) {
         ChessEngine* engine = engines.at(engine_id);
         Move move = engine->generate_move(color_from_char(color), games.at(game_id));
-        int* arr = (int*) malloc(sizeof(int) * 5);
+        int* arr = (int*) malloc(sizeof(int) * 6);
         arr[0] = move.move_from.x;
         arr[1] = move.move_from.y;
         arr[2] = move.move_to.x;
         arr[3] = move.move_to.y;
         arr[4] = engine->get_moves_considered();
+        arr[5] = (char) move.promote_to;
         return arr;
     }
     return 0;

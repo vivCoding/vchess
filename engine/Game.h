@@ -82,11 +82,17 @@ public:
     bool is_stalemate();
     bool is_stalemate(Color color);
 
-    bool pawn_promotion_available();
+    /*
+     * Check if a pawn at a given position (or given piece id) is available for promotion
+    */
     bool pawn_promotion_available(int x, int y);
     bool pawn_promotion_available(Vector v);
     bool pawn_promotion_available(string piece_id);
 
+    /*
+     * Promotes a pawn at given position (or piece id) to the given piece type
+     * Promoted piece types must be KNIGHT, BISHOP, ROOK, or QUEEN
+    */
     bool promote_pawn(int x, int y, PieceType promote_to);
     bool promote_pawn(Vector v, PieceType promote_to);
     bool promote_pawn(string piece_id, PieceType promote_to);

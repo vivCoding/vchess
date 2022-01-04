@@ -83,6 +83,8 @@ public:
      * - mobility value (how many moves it can take afterwards)
      * - center value (how close it is to the center)
      * - position value (how good is it's position according to the piece)
+     * - check/mates
+     * - pawn promotions
     */
     int calculate_utility(Move m, ChessGame* game);
 
