@@ -8,7 +8,8 @@ int ChessEngine::random_number(int n1, int n2) {
     return uni(rng);
 }
 
-ChessEngine::PossibleMove* ChessEngine::create_possible_move(Color color, Move root, Move move, int depth, int score, int best_score, PossibleMove *parent) {
+ChessEngine::PossibleMove* ChessEngine::create_possible_move(
+    Color color, Move root, Move move, int depth, int score, int best_score, PossibleMove *parent) {
     struct PossibleMove pm;
     pm.color = color; pm.root = root; pm.move = move; pm.depth = depth;
     pm.score = score; pm.best_score = best_score; pm.parent = parent;
@@ -26,7 +27,11 @@ ChessEngine::ChessEngine(int level) : level(level), rng(mt19937(rd())) {}
 Move ChessEngine::generate_random_move(Color color, ChessGame* game) {
     vector<Move> possible_moves = game->get_all_valid_moves(color);
     moves_considered = possible_moves.size();
-    return possible_moves.at(random_number(0, possible_moves.size()));
+    Move move = possible_moves.at(random_number(0, possible_moves.size()));
+    if (move.type == PAWN_PROMOTION) {
+        move.promote_to = promote_to_pieces[random_number(0, 4)];
+    }
+    return move;
 }
 
 Move ChessEngine::generate_move(Color color, ChessGame* game) {
@@ -41,10 +46,21 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
     int root_children_count = first_moves.size();
     vector<PossibleMove*> first_pms;
     for (auto m = first_moves.begin(); m != first_moves.end(); m++) {
-        first_pms.push_back(create_possible_move(
-            other_color, *m, *m, 1,
-            calculate_utility(*m, game), INT32_MIN, NULL
-        ));
+        if (m->type == PAWN_PROMOTION) {
+            for (PieceType pt : promote_to_pieces) {
+                Move nm = Move(m->move_from, m->move_to, m->piece_moved, m->piece_replaced, m->type);
+                nm.promote_to = pt;
+                first_pms.push_back(create_possible_move(
+                    other_color, nm, nm, 1,
+                    calculate_utility(nm, game), INT32_MIN, NULL
+                ));
+            }
+        } else {
+            first_pms.push_back(create_possible_move(
+                other_color, *m, *m, 1,
+                calculate_utility(*m, game), INT32_MIN, NULL
+            ));
+        }
     }
     // sort for slightly better pruning
     sort(first_pms.begin(), first_pms.end(), compare_possible_move);
@@ -104,6 +120,9 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
         } else {
             // move piece to find new possible moves
             game->move_valid(move);
+            if (move.type == PAWN_PROMOTION) {
+                game->promote_pawn(move.move_to, move.promote_to);
+            }
             // mark it visited so we revisit later and undo the move done
             pm->visited = true;
             // if we haven't reached all levels yet, then push all possible moves for next turn
@@ -130,10 +149,19 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
                 int sign = pm->color == color ? 1 : -1;
                 vector<PossibleMove*> pms;
                 for (auto m = possible_moves.begin(); m != possible_moves.end(); m++) {
-                    int new_score = pm->score + sign * calculate_utility(*m, game);
-                    pms.push_back(create_possible_move(
-                        new_color, pm->root, *m, pm->depth + 1, new_score, INT32_MIN, pm
-                    ));
+                    if (m->type == PAWN_PROMOTION) {
+                        for (PieceType pt : promote_to_pieces) {
+                            Move nm = *m;
+                            nm.promote_to = pt;
+                            pms.push_back(create_possible_move(
+                                new_color, pm->root, nm, pm->depth + 1, pm->score + sign * calculate_utility(nm, game), INT32_MIN, pm
+                            ));
+                        }
+                    } else {
+                        pms.push_back(create_possible_move(
+                            new_color, pm->root, *m, pm->depth + 1, pm->score + sign * calculate_utility(*m, game), INT32_MIN, pm
+                        ));
+                    }
                 }
                 // sorting them for slightly better pruning. Add to stack ascending or descending score based on color
                 // If our color, add them ascending (consider large options first, as we're maximizing).
@@ -158,23 +186,33 @@ Move ChessEngine::generate_move(Color color, ChessGame* game) {
 int ChessEngine::calculate_utility(Move m, ChessGame* game) {
     Piece* moved = m.piece_moved;
     Piece* captured = m.piece_replaced;
+    Color other = get_other_color(moved->color);
     int old_mobility = game->get_moves(m.piece_replaced).size();
     int old_position_value = moved->get_square_table_value(is_end_game(game));
     int score = 0;
-    Color other = get_other_color(moved->color);
+    int material = 0;
     // temporary move piece to check mobility and other factors
     game->move_valid(m);
+    // also promote pawn if needed
+    if (m.type == PAWN_PROMOTION) {
+        game->promote_pawn(m.move_to, m.promote_to);
+        switch (m.promote_to) {
+            case KNIGHT: material += 15; break;
+            case BISHOP: material += 17; break;
+            case ROOK: material += 25; break;
+            case QUEEN: material += 45; break;
+            default: break;
+        }
+    }
     // if checkmate or stalemate, set flat value
-    if (game->is_checkmate(other)) {
-        score = INT16_MAX;
-    } else if (game->is_stalemate(other)) {
-        score = 100;
-    } else {
-        int material = captured == NULL ? 0 : captured->get_material_value();
+    if (game->is_checkmate(other)) score = INT16_MAX;
+    else if (game->is_stalemate(other)) score = 100;
+    else {
+        material += captured == NULL ? 0 : captured->get_material_value();
         int mobility = game->get_moves(m.piece_replaced).size() - old_mobility;
-        int center_value = center_distance_scores[8 * m.move_from.y + m.move_from.x] - center_distance_scores[8 * m.move_to.y + m.move_to.x];
+        int center_value = center_distance_scores[8 * m.move_to.y + m.move_to.x] - center_distance_scores[8 * m.move_from.y + m.move_from.x];
         int position_value = moved->get_square_table_value(is_end_game(game)) - old_position_value;
-        // score = 6 * material + 2 * center_value + mobility + 2 * position_value;
+        // score = 6 * material + 2 * center_value + mobility * 2 * position_value;
         score = 6 * material;
     }
     game->undo_move();

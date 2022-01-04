@@ -50,14 +50,14 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
                 if (board->within_boundaries(v)) {
                     Piece* p = board->get_piece(v);
                     if (p != NULL && p->color != color) {
-                        moves.push_back(Move(position, v, piece, p));
+                        moves.push_back(Move(position, v, piece, p, v.y == 7 || v.y == 0 ? PAWN_PROMOTION : CAPTURE));
                     }
                 }
             }
             // check move forward 1
             Vector forward1 = position.add(moveset.at(0).scale(sign));
             if (board->within_boundaries(forward1) && board->get_piece(forward1) == NULL) {
-                moves.push_back(Move(position, forward1, piece, NULL));
+                moves.push_back(Move(position, forward1, piece, NULL, forward1.y == 7 || forward1.y == 0 ? PAWN_PROMOTION : MOVE));
             }
             // check move forward 2
             Vector forward2 = Vector(position.x, color == WHITE ? 3 : 4);
@@ -95,7 +95,7 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
                         if (!bad) {
                             for (int i = position.x + step; i != x; i += step) {
                                 // make sure there are no spaces are interfered with an enemy piece
-                                // do a separate loop because will_check can be expensive
+                                // do a separate loop because calling will_check() can be expensive
                                 if (will_check(Move(position, Vector(i, row), piece, NULL), color)) {
                                     bad = true;
                                     break;
@@ -113,7 +113,7 @@ vector<Move> ChessGame::get_moves(Piece* piece) {
     return moves;
 }
 
-ChessGame::ChessGame() : turn(WHITE), board(new Board()) {}
+ChessGame::ChessGame() : turn(WHITE), pieces_to_promote({}), board(new Board()) {}
 
 bool ChessGame::move_piece(int fx, int fy, int tx, int ty) { return move_piece(Vector(fx, fy), Vector(tx, ty)); }
 bool ChessGame::move_piece(Vector from, Vector to) { return move_piece(Move(from, to, board->get_piece(from), board->get_piece(to))); }
@@ -127,6 +127,9 @@ bool ChessGame::move_piece(Move m) {
             } else if (m.move_to.x == 2) {
                 m.type = QUEENSIDE_CASTLE;
             }
+        }
+        if (m.piece_moved->type == PAWN && (m.move_to.y == 0 || m.move_to.y == 7)) {
+            m.type = PAWN_PROMOTION;
         }
         move_valid(m);
         return true;
@@ -145,6 +148,9 @@ void ChessGame::move_valid(Move m) {
         rook->has_moved = true;
     }
     Move* to_store = new Move(m.move_from, m.move_to, m.piece_moved, m.piece_replaced, m.type);
+    if (m.type == PAWN_PROMOTION) {
+        pieces_to_promote.insert(pair<string, Move*>(m.piece_moved->get_id(), to_store));
+    }
     move_history.push_back(to_store);
     m.piece_moved->has_moved = true;
 }
@@ -282,14 +288,14 @@ vector<Move> ChessGame::get_valid_moves(int x, int y) {
                 if (board->within_boundaries(v)) {
                     Piece* p = board->get_piece(v);
                     if (p != NULL && p->color != color) {
-                        Move m = Move(position, v, piece, p);
+                        Move m = Move(position, v, piece, p, v.y == 7 || v.y == 0 ? PAWN_PROMOTION : CAPTURE);
                         if (!will_check(m, color)) valid_moves.push_back(m);
                     }
                 }
             }
             // check move forward 1
             Vector forward1 = position.add(moveset.at(0).scale(sign));
-            Move forward1_move = Move(position, forward1, piece, NULL);
+            Move forward1_move = Move(position, forward1, piece, NULL, forward1.y == 7 || forward1.y == 0 ? PAWN_PROMOTION : MOVE);
             if (board->within_boundaries(forward1) && board->get_piece(forward1) == NULL && !will_check(forward1_move, color)) {
                 valid_moves.push_back(forward1_move);
             }
@@ -425,6 +431,38 @@ bool ChessGame::is_stalemate(Color color) {
     return false;
 }
 
+bool ChessGame::pawn_promotion_available() { return pieces_to_promote.size() > 0; }
+bool ChessGame::pawn_promotion_available(int x, int y) { return pawn_promotion_available(board->get_piece(x, y)->get_id()); }
+bool ChessGame::pawn_promotion_available(Vector v) { return pawn_promotion_available(board->get_piece(v)->get_id()); }
+bool ChessGame::pawn_promotion_available(string piece_id) { return pieces_to_promote.find(piece_id) != pieces_to_promote.end(); }
+
+bool ChessGame::promote_pawn(int x, int y, PieceType promo_to) { return promote_pawn(board->get_piece(x, y)->get_id(), promo_to); }
+bool ChessGame::promote_pawn(Vector v, PieceType promo_to) { return promote_pawn(board->get_piece(v)->get_id(), promo_to); }
+bool ChessGame::promote_pawn(string piece_id, PieceType promote_to) {
+    auto pf = pieces_to_promote.find(piece_id);
+    if (pf != pieces_to_promote.end()) {
+        Move* m = pf->second;
+        Piece* pawn = m->piece_moved;
+        Color color = pawn->color;
+        Vector pos = pawn->position;
+        Piece* new_piece;
+        switch (promote_to) {
+            case KNIGHT: new_piece = new Knight(color, pos); break;
+            case BISHOP: new_piece = new Bishop(color, pos); break;
+            case ROOK: new_piece = new Rook(color, pos); break;
+            case QUEEN: new_piece = new Queen(color, pos); break;
+            default: return false;
+        }
+        new_piece->has_moved = true;
+        m->piece_moved = new_piece;
+        m->old_pawn = board->replace_piece(pos, new_piece);
+        m->promote_to = promote_to;
+        pieces_to_promote.erase(piece_id);
+        return true;
+    }
+    return false;
+}
+
 void ChessGame::undo_move() {
     if (move_history.empty()) return;
     Move* m = move_history.back();
@@ -436,6 +474,9 @@ void ChessGame::undo_move() {
         board->replace_piece(rook_pos.x == 5 ? 7 : 0, rook_pos.y, rook);
         board->clear_piece(rook_pos);
         rook->has_moved = !m->first_move;
+    }
+    if (m->type == PAWN_PROMOTION) {
+        board->replace_piece(m->move_from, m->old_pawn);
     }
     m->piece_moved->has_moved = !m->first_move;
     delete m;

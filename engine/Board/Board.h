@@ -80,10 +80,18 @@ public:
     }
 
     /*
-     * Returns &piece at given board position, or NULL if no piece exists at given position
+     * Returns &piece at given board position or NULL if no piece exists at given position
+     * You can also get piece by piece_id string
     */
     Piece* get_piece(Vector v) { return get_piece(v.x, v.y); }
     Piece* get_piece(int x, int y) { return within_boundaries(x, y) ? board[x][y] : NULL; }
+    Piece* get_piece(string piece_id) {
+        auto p = white_pieces.find(piece_id);
+        if (p != white_pieces.end()) return p->second;
+        p = black_pieces.find(piece_id);
+        if (p != white_pieces.end()) return p->second;
+        return NULL;
+    }
 
     /*
      * Replaces piece at board position with the given piece
@@ -109,7 +117,7 @@ public:
                     }
                 }
                 deleted_pieces.erase(piece->get_id());
-                if (replaced != NULL) {
+                if (replaced != NULL && replaced->get_id() != piece->get_id()) {
                     if (replaced->color == WHITE) {
                         white_pieces.erase(replaced->get_id());
                     } else {

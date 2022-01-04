@@ -5,6 +5,7 @@
  * Constants for the different chess pieces
 */
 enum PieceType {
+    NONE = '.',
     PAWN = 'P',
     KNIGHT = 'N',
     BISHOP = 'B',
@@ -12,5 +13,7 @@ enum PieceType {
     QUEEN = 'Q',
     KING = 'K'
 };
+
+static PieceType promote_to_pieces[] = { KNIGHT, BISHOP, ROOK, QUEEN };
 
 #endif

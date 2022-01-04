@@ -25,10 +25,30 @@ var pieceValidMoves = []
 var moveHistory = []
 var lastMoved = null
 
+var sprites = {
+    white: { P: null, N: null, B: null, R: null, Q: null, K: null },
+    black: { P: null, N: null, B: null, R: null, Q: null, K: null }
+}
+const spriteScale = 0.18
+
 function main() {
     game = new ChessGame()
     engine = new ChessEngine(0)
+
     resetGame()
+    
+    Object.keys(sprites).forEach(color => {
+        Object.keys(sprites[color]).forEach(piece => {
+            sprites[color][piece] = new Image()
+            sprites[color][piece].src = `pieces/${color}/${piece}.png`
+            sprites[color][piece].onload = function() {
+                sprites[color][piece].width *= spriteScale
+                sprites[color][piece].height *= spriteScale
+                drawBoard()
+            }
+        })
+    })
+
 
     resetBtn.onclick = resetGame
 
@@ -208,7 +228,7 @@ function main() {
     }
 
     function drawBoard() {
-        const upsidedown = playerColor == Colors.BLACK
+        console.log("bruh")
         ctx.beginPath()
         const brown = "rgb(180, 136, 102)"
         const yellow = "rgb(239, 216, 183)"
@@ -222,34 +242,28 @@ function main() {
                 if ((x + y) % 2 == 0) ctx.fillRect(x * spaceWidth, y * spaceHeight, spaceWidth, spaceHeight)
                 if (x == 0) {
                     ctx.fillStyle = "#4a3300"
-                    ctx.fillText(y + 1, x + 2, y * spaceHeight + 18)
+                    ctx.fillText(playerColor == Colors.BLACK ? y + 1 : (7 - y) + 1, x + 2, y * spaceHeight + 18)
                 }
                 const boardPos = upsidedownAdj({x: x, y: y})
                 const piece = game.getPiece(boardPos.x, boardPos.y)
                 if (piece != null) {
-                    let sprite = new Image()
-                    sprite.src = `pieces/${piece.color == Colors.WHITE ? "white" : "black"}/${piece.type}.png`
-                    sprite.onload = function() {
-                        let scale = 0.18
-                        let sw = sprite.width * scale
-                        let sh = sprite.height * scale
+                    let sprite = sprites[piece.color == Colors.WHITE ? "white" : "black"][piece.type]
+                    if (sprite != null) {
                         ctx.drawImage(sprite,
-                            x * spaceWidth + spaceWidth / 2 - sw / 2,
-                            y * spaceHeight + spaceHeight / 2 - sh / 2,
-                            sw, sh
+                            x * spaceWidth + spaceWidth / 2 - sprite.width / 2,
+                            y * spaceHeight + spaceHeight / 2 - sprite.height / 2,
+                            sprite.width, sprite.height
                         )
-                        afterPieceLoad()
                     }
+                    console.log(sprites)
                 }
             }
             ctx.fillStyle = "#4a3300"
-            ctx.fillText(letters[x], (x + 1) * width / 8 - 12, height - 5)
+            ctx.fillText(letters[playerColor == Colors.BLACK ? (7 - x) : x], (x + 1) * width / 8 - 12, height - 5)
         }
         ctx.closePath()
-        function afterPieceLoad() {
-            showLastMoved()
-            showValidMoves()
-        }
+        showLastMoved()
+        showValidMoves()
     }
 
     function upsidedownAdj (pos) {

@@ -2,3 +2,4 @@ _bin
 .vscode
 scratch
 node_modules
+*.txt

@@ -100,3 +100,7 @@ img {
 #chessOof {
     display: none;
 }
+
+#canvas {
+    border-radius: 0.5em;
+}

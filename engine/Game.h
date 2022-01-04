@@ -9,6 +9,8 @@ private:
     Color turn;
     vector<Move*> move_history;
 
+    unordered_map<string, Move*> pieces_to_promote;
+
     /*
      * Checks if a move will result in check
     */
@@ -79,6 +81,15 @@ public:
     */
     bool is_stalemate();
     bool is_stalemate(Color color);
+
+    bool pawn_promotion_available();
+    bool pawn_promotion_available(int x, int y);
+    bool pawn_promotion_available(Vector v);
+    bool pawn_promotion_available(string piece_id);
+
+    bool promote_pawn(int x, int y, PieceType promote_to);
+    bool promote_pawn(Vector v, PieceType promote_to);
+    bool promote_pawn(string piece_id, PieceType promote_to);
 
     /*
      * Undo the last move added to the moves history. Note that this does not return any data, and it destroys the last move (deallocate memory).

@@ -8,12 +8,11 @@
 #include <iostream>
 using namespace std;
 
-
 void print_board(ChessGame* game, bool upsidedown);
 void print_help_menu();
 
 int main() {
-    int level = 3;
+    int level = 1;
     Color player_color = WHITE;
     Color engine_color = BLACK;
     ChessGame game;
@@ -31,10 +30,14 @@ int main() {
             // print board upside down or not
             print_board(&game, player_color == BLACK);
         }
+
         if (game.get_turn() == engine_color && !game.is_checkmate(engine_color)) {
             Move move = engine.generate_move(engine_color, &game);
             // Move move = engine.generate_random_move(engine_color, &game);
             game.move_piece(move);
+            if (move.type == PAWN_PROMOTION) {
+                game.promote_pawn(move.move_to, move.promote_to);
+            }
             cout << "Moves considered: " << engine.get_moves_considered() << endl;
             cout << "BLACK MOVE: " << move.as_string() << endl;
             game.next_turn();
@@ -88,7 +91,7 @@ int main() {
             show_board = false;
         } else if (input.length() >= 7 && input.substr(0, 6) == "level ") {
             level = stoi(input.substr(6));
-            cout << "New chess_engine level is " << level << ". Reset game to apply chess engine level.\n";
+            cout << "New chess engine level is " << level << ". Reset game to apply chess engine level.\n";
             show_board = false;
         } else if (input.length() == 7 && input.substr(0, 6) == "color ") {
             if (input[6] == 'w') {
@@ -117,6 +120,22 @@ int main() {
                 } else {
                     bool move_success = game.move_piece(x, y, x2, y2);
                     if (move_success) {
+                        if (game.pawn_promotion_available(x2, y2)) {
+                            while (true) {
+                                cout << "Promote to (enter N, B, R, Q): ";
+                                getline(cin, input);
+                                bool found = false;
+                                for (PieceType pt : promote_to_pieces) {
+                                    if (input[0] == (char) pt) {
+                                        game.promote_pawn(x2, y2, pt);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) cout << "Invalid promotion piece!\n";
+                                else break;
+                            }
+                        }
                         game.next_turn();
                         show_board = true;
                     } else cout << "Invalid move! Type \"help\" for more info!" << endl;
